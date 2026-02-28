@@ -1,0 +1,39 @@
+ <!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <title>Wegpunkte Dashboard</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header><h1>Wegpunkte — Map Editor</h1></header>
+
+  <div id="app">
+    <aside id="sidebar">
+      <h2>Wegpunkte</h2>
+      <div id="controls">
+        <button id="exportGeo">Export GeoJSON</button>
+        <button id="exportCSV">Export CSV</button>
+        <button id="clearAll">Alle löschen</button>
+      </div>
+      <div id="wpList"></div>
+    </aside>
+
+    <main id="main">
+      <div id="map"></div>
+      <div id="videoBox">
+        <h3>Video</h3>
+        <div class="videoPlaceholder">Video-Stream Platzhalter</div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Wenn du Socket.IO verwenden willst (server muss laufen): -->
+  <!-- <script src="/socket.io/socket.io.js"></script> -->
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
