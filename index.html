@@ -1,37 +1,101 @@
- <!doctype html>
+<!doctype html>
 <html lang="de">
 <head>
   <meta charset="utf-8" />
-  <title>Wegpunkte Dashboard</title>
+  <title>Flathead Control Center</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <header><h1>Wegpunkte — Map Editor</h1></header>
+  <header class="topbar">
+    <h1>Flathead Control Center</h1>
+    <p>Sensoren, Standort und Live-Kamera für dein mobiles Gefahrenerkennungssystem.</p>
+  </header>
 
-  <div id="app">
-    <aside id="sidebar">
-      <h2>Wegpunkte</h2>
-      <div id="controls">
-        <button id="exportGeo">Export GeoJSON</button>
-        <button id="exportCSV">Export CSV</button>
-        <button id="clearAll">Alle löschen</button>
+  <main class="layout">
+    <section id="home" class="view active">
+      <h2>Main Page</h2>
+      <div class="menu-grid">
+        <button class="menu-card" data-target="dashboard">
+          <span class="card-number">1</span>
+          <strong>Sensor-Daten Dashboard</strong>
+          <small>Innen/Außen, Richtung und Distanzwerte</small>
+        </button>
+        <button class="menu-card" data-target="location">
+          <span class="card-number">2</span>
+          <strong>Aufenthaltsort des Raspberry</strong>
+          <small>GPS-Position live auf Karte</small>
+        </button>
+        <button class="menu-card" data-target="camera">
+          <span class="card-number">3</span>
+          <strong>Live Kamera Feed</strong>
+          <small>Stream direkt aus Node-RED</small>
+        </button>
       </div>
-      <div id="wpList"></div>
-    </aside>
+    </section>
 
-    <main id="main">
+    <section id="dashboard" class="view">
+      <div class="section-head">
+        <h2>Sensor-Daten Dashboard</h2>
+        <button class="ghost" data-target="home">← Zurück</button>
+      </div>
+      <p class="hint">Aktualisierung: alle 10 Sekunden (Node-RED Endpunkt: <code>/api/sensors</code>).</p>
+      <div class="stats-grid">
+        <article class="stat"><h3>Temperatur außen</h3><p id="tempOut">-- °C</p></article>
+        <article class="stat"><h3>Temperatur innen</h3><p id="tempIn">-- °C</p></article>
+        <article class="stat"><h3>Humidity außen</h3><p id="humOut">-- %</p></article>
+        <article class="stat"><h3>Humidity innen</h3><p id="humIn">-- %</p></article>
+        <article class="stat"><h3>Himmelsrichtung</h3><p id="heading">-- °</p></article>
+        <article class="stat"><h3>Distanz zu Objekten</h3><p id="distance">-- cm</p></article>
+      </div>
+      <div id="sensorStatus" class="status"></div>
+    </section>
+
+    <section id="location" class="view">
+      <div class="section-head">
+        <h2>Aufenthaltsort</h2>
+        <button class="ghost" data-target="home">← Zurück</button>
+      </div>
+      <p class="hint">Node-RED Endpunkt: <code>/api/location</code> (JSON: lat, lng, accuracy, source, ts).</p>
       <div id="map"></div>
-      <div id="videoBox">
-        <h3>Video</h3>
-        <div class="videoPlaceholder">Video-Stream Platzhalter</div>
-      </div>
-    </main>
-  </div>
+      <ul class="meta-list">
+        <li><strong>Quelle:</strong> <span id="locSource">--</span></li>
+        <li><strong>Genauigkeit:</strong> <span id="locAccuracy">--</span></li>
+        <li><strong>Letztes Update:</strong> <span id="locTime">--</span></li>
+      </ul>
+      <div id="locationStatus" class="status"></div>
+    </section>
 
-  <!-- Wenn du Socket.IO verwenden willst (server muss laufen): -->
-  <!-- <script src="/socket.io/socket.io.js"></script> -->
+    <section id="camera" class="view">
+      <div class="section-head">
+        <h2>Live Kamera Feed</h2>
+        <button class="ghost" data-target="home">← Zurück</button>
+      </div>
+      <p class="hint">Empfohlen: MJPEG oder HLS URL per Node-RED Dashboard oder HTTP-In Node.</p>
+      <div class="camera-wrap">
+        <img id="cameraFeed" alt="Live Feed vom Raspberry" referrerpolicy="no-referrer" />
+        <div id="cameraFallback" class="camera-fallback">
+          Kein Stream geladen. Trage unten eine Stream-URL ein.
+        </div>
+      </div>
+      <div class="camera-controls">
+        <input id="cameraUrl" type="url" placeholder="z. B. http://raspberrypi.local:1880/camera/stream" />
+        <button id="applyCameraUrl">Stream laden</button>
+      </div>
+      <div id="cameraStatus" class="status"></div>
+    </section>
+
+    <section id="ideas" class="view active">
+      <h2>Ideen für GPS & LoRa Integration</h2>
+      <ol>
+        <li><strong>Primär GPS + LoRa Backup:</strong> GPS-Daten am Raspberry erfassen, kompakt per LoRa schicken (z. B. lat/lng + battery + timestamp) und im Node-RED Flow wieder als JSON veröffentlichen.</li>
+        <li><strong>Geofencing:</strong> Definiere sichere Zonen in Node-RED (Function Node). Bei Verlassen: Alarm + rote Markierung auf Karte.</li>
+        <li><strong>Store-and-Forward:</strong> Wenn kein Netz da ist, Positionen lokal puffern (SQLite/Datei) und später gesammelt an Node-RED senden.</li>
+        <li><strong>Kamera-Trigger:</strong> Bei kurzer Distanz zu Objekten automatisch Snapshot/Clip erzeugen und im Dashboard verlinken.</li>
+      </ol>
+    </section>
+  </main>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="app.js"></script>

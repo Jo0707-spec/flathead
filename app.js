@@ -1,5 +1,72 @@
-// app.js
-// Basic waypoint editor with Leaflet, localStorage, export and send-to-server (fetch)
+const views = document.querySelectorAll('.view');
+const navButtons = document.querySelectorAll('[data-target]');
+
+function showView(id) {
+  views.forEach((view) => view.classList.toggle('active', view.id === id || view.id === 'ideas'));
+}
+
+navButtons.forEach((btn) => {
+  btn.addEventListener('click', () => showView(btn.dataset.target));
+});
+
+// --- Sensor dashboard ---
+const sensorFields = {
+  tempOut: document.getElementById('tempOut'),
+  tempIn: document.getElementById('tempIn'),
+  humOut: document.getElementById('humOut'),
+  humIn: document.getElementById('humIn'),
+  heading: document.getElementById('heading'),
+  distance: document.getElementById('distance')
+};
+const sensorStatus = document.getElementById('sensorStatus');
+
+function setSensorStatus(text, isError = false) {
+  sensorStatus.textContent = text;
+  sensorStatus.style.color = isError ? 'var(--danger)' : 'var(--muted)';
+}
+
+function renderSensorData(data) {
+  sensorFields.tempOut.textContent = `${data.tempOutside.toFixed(1)} °C`;
+  sensorFields.tempIn.textContent = `${data.tempInside.toFixed(1)} °C`;
+  sensorFields.humOut.textContent = `${data.humidityOutside.toFixed(1)} %`;
+  sensorFields.humIn.textContent = `${data.humidityInside.toFixed(1)} %`;
+  sensorFields.heading.textContent = `${data.heading.toFixed(0)} ° (${data.direction})`;
+  sensorFields.distance.textContent = `${data.distanceCm.toFixed(0)} cm`;
+}
+
+function demoSensorData() {
+  const heading = Math.random() * 360;
+  const dirs = ['N', 'NO', 'O', 'SO', 'S', 'SW', 'W', 'NW'];
+  return {
+    tempOutside: 5 + Math.random() * 20,
+    tempInside: 15 + Math.random() * 12,
+    humidityOutside: 45 + Math.random() * 45,
+    humidityInside: 30 + Math.random() * 45,
+    heading,
+    direction: dirs[Math.round(heading / 45) % dirs.length],
+    distanceCm: 15 + Math.random() * 300
+  };
+}
+
+async function fetchSensors() {
+  try {
+    const res = await fetch('/api/sensors');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const payload = await res.json();
+    renderSensorData(payload);
+    setSensorStatus(`Sensoren live von Node-RED (${new Date().toLocaleTimeString('de-DE')})`);
+  } catch {
+    const fallback = demoSensorData();
+    renderSensorData(fallback);
+    setSensorStatus('Demo-Werte aktiv. Für Live-Daten Node-RED Endpoint /api/sensors verbinden.', true);
+  }
+}
+
+// --- Location map ---
+const locSource = document.getElementById('locSource');
+const locAccuracy = document.getElementById('locAccuracy');
+const locTime = document.getElementById('locTime');
+const locationStatus = document.getElementById('locationStatus');
 
 const map = L.map('map').setView([48.2082, 16.3738], 13);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -7,156 +74,87 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '© OpenStreetMap-Mitwirkende'
 }).addTo(map);
 
-const wpListEl = document.getElementById('wpList');
-const exportGeoBtn = document.getElementById('exportGeo');
-const exportCSVBtn = document.getElementById('exportCSV');
-const clearAllBtn = document.getElementById('clearAll');
+const marker = L.marker([48.2082, 16.3738]).addTo(map);
 
-let waypoints = {}; // id -> {id, lat, lng, meta, marker}
-
-// helper: create unique id
-function makeId(){ return 'wp_' + Date.now() + '_' + Math.floor(Math.random()*10000); }
-
-// Load from localStorage
-function loadWaypoints(){
-  const raw = localStorage.getItem('wps_v1');
-  if(!raw) return;
-  try{
-    const arr = JSON.parse(raw);
-    arr.forEach(w => addWaypoint(w.lat, w.lng, w.meta || {}, w.id, false));
-  }catch(e){ console.warn('load error', e) }
+function setLocationStatus(text, isError = false) {
+  locationStatus.textContent = text;
+  locationStatus.style.color = isError ? 'var(--danger)' : 'var(--muted)';
 }
 
-// Save to localStorage (persist)
-function saveWaypoints(){
-  const arr = Object.values(waypoints).map(w => ({id:w.id, lat:w.lat, lng:w.lng, meta:w.meta}));
-  localStorage.setItem('wps_v1', JSON.stringify(arr));
+function renderLocation(data) {
+  marker.setLatLng([data.lat, data.lng]);
+  marker.bindPopup(`Raspberry Position<br>${data.lat.toFixed(6)}, ${data.lng.toFixed(6)}`);
+  map.panTo([data.lat, data.lng]);
+  locSource.textContent = data.source || 'GPS';
+  locAccuracy.textContent = data.accuracy ? `± ${data.accuracy} m` : '--';
+  locTime.textContent = new Date(data.ts || Date.now()).toLocaleString('de-DE');
 }
 
-// Add a marker and internal entry
-function addWaypoint(lat, lng, meta={}, id=null, center=true){
-  const wpId = id || makeId();
-  const marker = L.marker([lat,lng], {draggable:true}).addTo(map);
-  marker.bindPopup(`<div><strong>Wegpunkt</strong><div class="coords">${lat.toFixed(6)}, ${lng.toFixed(6)}</div>
-    <div style="margin-top:6px"><button id="send_${wpId}">Senden</button>
-    <button id="delete_${wpId}">Löschen</button></div></div>`);
-  marker.on('dragend', (ev) => {
-    const p = ev.target.getLatLng();
-    updateWaypoint(wpId, p.lat, p.lng);
-  });
-  marker.on('popupopen', () => {
-    document.getElementById(`send_${wpId}`).onclick = () => sendWaypoint(wpId);
-    document.getElementById(`delete_${wpId}`).onclick = () => removeWaypoint(wpId);
-  });
-
-  waypoints[wpId] = { id: wpId, lat, lng, meta, marker };
-  renderList();
-  saveWaypoints();
-  if(center) map.panTo([lat,lng]);
+function demoLocation() {
+  const baseLat = 48.2082;
+  const baseLng = 16.3738;
+  return {
+    lat: baseLat + (Math.random() - 0.5) * 0.01,
+    lng: baseLng + (Math.random() - 0.5) * 0.01,
+    accuracy: 8 + Math.floor(Math.random() * 8),
+    source: 'Demo GPS',
+    ts: Date.now()
+  };
 }
 
-// Update position after drag
-function updateWaypoint(id, lat, lng){
-  const wp = waypoints[id];
-  if(!wp) return;
-  wp.lat = lat; wp.lng = lng;
-  // update popup coords text (if open)
-  wp.marker.setPopupContent(`<div><strong>Wegpunkt</strong><div class="coords">${lat.toFixed(6)}, ${lng.toFixed(6)}</div>
-    <div style="margin-top:6px"><button id="send_${id}">Senden</button>
-    <button id="delete_${id}">Löschen</button></div></div>`);
-  renderList();
-  saveWaypoints();
+async function fetchLocation() {
+  try {
+    const res = await fetch('/api/location');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const payload = await res.json();
+    renderLocation(payload);
+    setLocationStatus('Standort live von Node-RED geladen.');
+  } catch {
+    renderLocation(demoLocation());
+    setLocationStatus('Demo-Standort aktiv. Für Live-Daten Endpoint /api/location bereitstellen.', true);
+  }
 }
 
-// Remove waypoint
-function removeWaypoint(id){
-  const wp = waypoints[id];
-  if(!wp) return;
-  map.removeLayer(wp.marker);
-  delete waypoints[id];
-  renderList();
-  saveWaypoints();
-}
+// --- Camera feed ---
+const cameraFeed = document.getElementById('cameraFeed');
+const cameraFallback = document.getElementById('cameraFallback');
+const cameraUrlInput = document.getElementById('cameraUrl');
+const applyCameraUrlBtn = document.getElementById('applyCameraUrl');
+const cameraStatus = document.getElementById('cameraStatus');
 
-// Render sidebar list
-function renderList(){
-  wpListEl.innerHTML = '';
-  const arr = Object.values(waypoints).sort((a,b)=>a.id.localeCompare(b.id));
-  arr.forEach(w=>{
-    const div = document.createElement('div'); div.className='wp-item';
-    const left = document.createElement('div');
-    left.innerHTML = `<div><strong>${w.id}</strong></div><div class="coords">${w.lat.toFixed(6)}, ${w.lng.toFixed(6)}</div>`;
-    const right = document.createElement('div'); right.className='wp-actions';
-    const panBtn = document.createElement('button'); panBtn.textContent='►';
-    panBtn.title='Zur Position fahren';
-    panBtn.onclick = ()=>{ map.panTo([w.lat,w.lng]); w.marker.openPopup(); };
-    const sendBtn = document.createElement('button'); sendBtn.textContent='Senden';
-    sendBtn.onclick = ()=> sendWaypoint(w.id);
-    const delBtn = document.createElement('button'); delBtn.textContent='Löschen';
-    delBtn.onclick = ()=> removeWaypoint(w.id);
-    right.append(panBtn, sendBtn, delBtn);
-    div.append(left, right);
-    wpListEl.appendChild(div);
-  });
-}
-
-// Export GeoJSON
-function exportGeoJSON(){
-  const features = Object.values(waypoints).map(w => ({
-    type: 'Feature',
-    properties: { id: w.id, ...w.meta },
-    geometry: { type: 'Point', coordinates: [w.lng, w.lat] }
-  }));
-  const fc = { type: 'FeatureCollection', features };
-  const blob = new Blob([JSON.stringify(fc, null, 2)], {type: 'application/json'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href=url; a.download='waypoints.geojson'; a.click();
-  URL.revokeObjectURL(url);
-}
-
-// Export CSV (id,lat,lng)
-function exportCSV(){
-  const lines = ['id,lat,lng'];
-  Object.values(waypoints).forEach(w => lines.push(`${w.id},${w.lat},${w.lng}`));
-  const blob = new Blob([lines.join('\n')], {type:'text/csv'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href=url; a.download='waypoints.csv'; a.click();
-  URL.revokeObjectURL(url);
-}
-
-// Send waypoint to server (HTTP POST)
-async function sendWaypoint(id){
-  const w = waypoints[id];
-  if(!w) { alert('Wegpunkt nicht gefunden'); return; }
-  const payload = { deviceId: 'all', id: w.id, lat: w.lat, lng: w.lng, meta: w.meta || {}, ts: Date.now() };
-  try{
-    const res = await fetch('/api/waypoints', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
-    if(res.ok) { alert('Wegpunkt gesendet!'); }
-    else { alert('Fehler beim Senden: ' + res.status); }
-  }catch(err){
-    alert('Netzwerkfehler beim Senden: ' + err);
+function applyCameraUrl(url) {
+  if (!url) {
+    cameraFeed.style.display = 'none';
+    cameraFallback.style.display = 'grid';
+    cameraStatus.textContent = 'Noch keine Kamera-URL gesetzt.';
+    return;
   }
 
-  // ALTERNATIVE: Wenn du Socket.IO benutzt (Server muss socket.io bereitstellen)
-  // const socket = io(); socket.emit('new-waypoint', payload);
+  cameraFeed.src = url;
+  cameraFeed.style.display = 'block';
+  cameraFallback.style.display = 'none';
+  localStorage.setItem('cameraFeedUrl', url);
+  cameraStatus.textContent = `Kamera geladen: ${url}`;
 }
 
-// clear all
-function clearAll(){
-  Object.values(waypoints).forEach(w=> map.removeLayer(w.marker));
-  waypoints={};
-  renderList();
-  saveWaypoints();
+applyCameraUrlBtn.addEventListener('click', () => {
+  applyCameraUrl(cameraUrlInput.value.trim());
+});
+
+cameraFeed.addEventListener('error', () => {
+  cameraFeed.style.display = 'none';
+  cameraFallback.style.display = 'grid';
+  cameraStatus.textContent = 'Stream nicht erreichbar. Prüfe URL, CORS und Node-RED Freigabe.';
+});
+
+function initCamera() {
+  const saved = localStorage.getItem('cameraFeedUrl') || '';
+  cameraUrlInput.value = saved;
+  applyCameraUrl(saved);
 }
 
-// map click -> add waypoint
-map.on('click', e => addWaypoint(e.latlng.lat, e.latlng.lng, {note:'from map'} ));
-
-exportGeoBtn.onclick = exportGeoJSON;
-exportCSVBtn.onclick = exportCSV;
-clearAllBtn.onclick = () => { if(confirm('Alle Wegpunkte löschen?')) clearAll(); };
-
-// initial load
-loadWaypoints();
-renderList();
-
+fetchSensors();
+fetchLocation();
+initCamera();
+setInterval(fetchSensors, 10000);
+setInterval(fetchLocation, 10000);
