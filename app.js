@@ -212,3 +212,10 @@ setupNodeRedEmbed();
 setInterval(refreshSensors, config.sensorPollMs);
 setInterval(refreshLocation, config.locationPollMs);
 setInterval(refreshCharts, config.chartPollMs);
+
+setTimeout(() => {
+  updateChart(tempChart,
+    ["10:00","10:01","10:02","10:03"],
+    [21,22,23,24]
+  );
+}, 1000);
