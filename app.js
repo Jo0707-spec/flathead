@@ -1,9 +1,9 @@
 const config = {
   // Passe die Endpunkte auf deine Node-RED HTTP-In Nodes an:
-  sensorUrl: '/api/sensors/latest',
-  sensorHistoryUrl: '/api/sensors/history',
-  locationUrl: '/api/location/latest',
-  cameraFeedUrl: '',
+  sensorUrl: 'http://192.168.68.122:1880/api/sensors/latest',
+  sensorHistoryUrl: 'http://192.168.68.122:1880/api/sensors/history',
+  locationUrl: 'http://192.168.68.122:1880/api/location/latest',
+  chartPollMs: 30000,
   // Beispiel: 'http://raspberrypi.local:1880/ui' oder '/ui'
   nodeRedDashboardUrl: '',
   sensorPollMs: 10000,
