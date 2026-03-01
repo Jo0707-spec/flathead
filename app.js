@@ -1,104 +1,127 @@
-const menuButtons = document.querySelectorAll('.menu-btn');
-const panels = {
-  dashboard: document.getElementById('panel-dashboard'),
-  location: document.getElementById('panel-location'),
-  camera: document.getElementById('panel-camera')
+const config = {
+  // Passe die Endpunkte auf deine Node-RED HTTP-In Nodes an:
+  sensorUrl: '/api/sensors/latest',
+  locationUrl: '/api/location/latest',
+  cameraFeedUrl: '',
+  sensorPollMs: 10000,
+  locationPollMs: 15000,
 };
 
-function switchPanel(target) {
-  menuButtons.forEach((btn) => btn.classList.toggle('active', btn.dataset.target === target));
-  Object.entries(panels).forEach(([name, panel]) => panel.classList.toggle('active', name === target));
-}
+const menuButtons = document.querySelectorAll('.menu-btn');
+const panels = document.querySelectorAll('.panel');
+
+const sensorStatus = document.getElementById('sensor-status');
+const lastUpdated = document.getElementById('last-updated');
+
+const fields = {
+  tempOut: document.getElementById('temp-out'),
+  tempIn: document.getElementById('temp-in'),
+  heading: document.getElementById('heading'),
+  humOut: document.getElementById('hum-out'),
+  humIn: document.getElementById('hum-in'),
+  distance: document.getElementById('distance'),
+  lat: document.getElementById('lat'),
+  lng: document.getElementById('lng'),
+  accuracy: document.getElementById('accuracy'),
+  gpsTs: document.getElementById('gps-ts'),
+};
+
+const cameraFeedEl = document.getElementById('camera-feed');
+const cameraPlaceholderEl = document.getElementById('camera-placeholder');
 
 menuButtons.forEach((btn) => {
-  btn.addEventListener('click', () => switchPanel(btn.dataset.target));
+  btn.addEventListener('click', () => {
+    menuButtons.forEach((button) => button.classList.remove('active'));
+    panels.forEach((panel) => panel.classList.remove('active'));
+
+    btn.classList.add('active');
+    const target = document.getElementById(btn.dataset.target);
+    if (target) target.classList.add('active');
+  });
 });
 
-// Karte für GPS-Position
-const map = L.map('map').setView([48.2082, 16.3738], 12);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  maxZoom: 19,
-  attribution: '© OpenStreetMap-Mitwirkende'
-}).addTo(map);
-const gpsMarker = L.marker([48.2082, 16.3738]).addTo(map).bindPopup('Raspberry Position');
-
-function headingToText(angle) {
-  const dirs = ['N', 'NO', 'O', 'SO', 'S', 'SW', 'W', 'NW'];
-  const i = Math.round(((angle % 360) / 45)) % 8;
-  return dirs[i];
+function setStatus(type, message) {
+  sensorStatus.className = `status ${type}`;
+  sensorStatus.textContent = message;
 }
 
-function applyTelemetry(data) {
-  document.getElementById('tempOutside').textContent = `${data.tempOutside?.toFixed?.(1) ?? '--'} °C`;
-  document.getElementById('tempInside').textContent = `${data.tempInside?.toFixed?.(1) ?? '--'} °C`;
-  document.getElementById('humOutside').textContent = `${data.humOutside?.toFixed?.(1) ?? '--'} %`;
-  document.getElementById('humInside').textContent = `${data.humInside?.toFixed?.(1) ?? '--'} %`;
-
-  if (typeof data.heading === 'number') {
-    document.getElementById('heading').textContent = `${data.heading.toFixed(0)}°`;
-    document.getElementById('headingText').textContent = headingToText(data.heading);
-  }
-
-  document.getElementById('distance').textContent = `${data.distanceCm?.toFixed?.(0) ?? '--'} cm`;
-
-  if (typeof data.lat === 'number' && typeof data.lng === 'number') {
-    gpsMarker.setLatLng([data.lat, data.lng]);
-    map.panTo([data.lat, data.lng]);
-    document.getElementById('lat').textContent = data.lat.toFixed(6);
-    document.getElementById('lng').textContent = data.lng.toFixed(6);
-  }
-
-  if (data.ts) {
-    document.getElementById('gpsTimestamp').textContent = new Date(data.ts).toLocaleString();
-  }
+function safeValue(value, digits = 1) {
+  if (typeof value !== 'number' || Number.isNaN(value)) return '--';
+  return value.toFixed(digits);
 }
 
-// Live-Fetch als einfaches Beispiel für Node-RED HTTP-In
-async function fetchTelemetry() {
+function updateSensorUI(data) {
+  fields.tempOut.textContent = safeValue(data?.temperature?.outside);
+  fields.tempIn.textContent = safeValue(data?.temperature?.inside);
+  fields.humOut.textContent = safeValue(data?.humidity?.outside);
+  fields.humIn.textContent = safeValue(data?.humidity?.inside);
+
+  const heading = data?.heading;
+  fields.heading.textContent = heading?.cardinal
+    ? `${heading.cardinal} (${safeValue(heading.deg, 0)}°)`
+    : '--';
+
+  fields.distance.textContent = safeValue(data?.distanceCm, 0);
+  lastUpdated.textContent = `Letztes Update: ${new Date().toLocaleTimeString('de-DE')}`;
+}
+
+function updateLocationUI(data) {
+  fields.lat.textContent = safeValue(data?.lat, 6);
+  fields.lng.textContent = safeValue(data?.lng, 6);
+  fields.accuracy.textContent = safeValue(data?.accuracyM, 1);
+  fields.gpsTs.textContent = data?.timestamp
+    ? new Date(data.timestamp).toLocaleString('de-DE')
+    : '--';
+}
+
+async function fetchJson(url) {
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: { Accept: 'application/json' },
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status} auf ${url}`);
+  }
+
+  return response.json();
+}
+
+async function refreshSensors() {
   try {
-    const response = await fetch('/api/telemetry/latest', { cache: 'no-store' });
-    if (!response.ok) return;
-    const payload = await response.json();
-    applyTelemetry(payload);
-  } catch {
-    // still okay in demo mode
+    const data = await fetchJson(config.sensorUrl);
+    updateSensorUI(data);
+    setStatus('ok', 'Sensordaten empfangen');
+  } catch (error) {
+    setStatus('error', `Keine Sensordaten: ${error.message}`);
   }
 }
 
-// Demo-Fallback: simulierte Daten, falls noch kein Backend läuft
-let simulatedHeading = 0;
-function simulateTelemetry() {
-  simulatedHeading = (simulatedHeading + 12) % 360;
-  const demo = {
-    tempOutside: 7 + Math.random() * 2,
-    tempInside: 21 + Math.random() * 1.2,
-    humOutside: 62 + Math.random() * 8,
-    humInside: 44 + Math.random() * 4,
-    distanceCm: 45 + Math.random() * 120,
-    heading: simulatedHeading,
-    lat: 48.2082 + ((Math.random() - 0.5) * 0.01),
-    lng: 16.3738 + ((Math.random() - 0.5) * 0.01),
-    ts: Date.now()
-  };
-  applyTelemetry(demo);
+async function refreshLocation() {
+  try {
+    const data = await fetchJson(config.locationUrl);
+    updateLocationUI(data);
+  } catch (error) {
+    fields.gpsTs.textContent = `Fehler: ${error.message}`;
+  }
 }
 
-setInterval(fetchTelemetry, 5000);
-setInterval(simulateTelemetry, 10000); // Distanz-Anzeige wird so mind. alle 10 s erneuert
-fetchTelemetry();
-simulateTelemetry();
+function setupCameraFeed() {
+  if (!config.cameraFeedUrl) {
+    cameraFeedEl.style.display = 'none';
+    cameraPlaceholderEl.style.display = 'grid';
+    return;
+  }
 
-// Kamera-Verbindung
-const cameraFeed = document.getElementById('cameraFeed');
-const cameraPlaceholder = document.getElementById('cameraPlaceholder');
-const connectCamera = document.getElementById('connectCamera');
-const cameraUrlInput = document.getElementById('cameraUrl');
+  cameraFeedEl.src = config.cameraFeedUrl;
+  cameraFeedEl.style.display = 'block';
+  cameraPlaceholderEl.style.display = 'none';
+}
 
-connectCamera.addEventListener('click', () => {
-  const url = cameraUrlInput.value.trim();
-  if (!url) return;
+refreshSensors();
+refreshLocation();
+setupCameraFeed();
 
-  cameraFeed.src = url;
-  cameraFeed.style.display = 'block';
-  cameraPlaceholder.style.display = 'none';
-});
+setInterval(refreshSensors, config.sensorPollMs);
+setInterval(refreshLocation, config.locationPollMs);
