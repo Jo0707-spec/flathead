@@ -95,11 +95,15 @@ body {
 
 .panel-header h2 {
   margin: 0;
-  font-size: 1.2rem;
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  color: #0f172a;
 }
 
 .panel-header small {
-  color: var(--muted);
+  color: #475569;
+  font-weight: 600;
 }
 
 .grid-cards {
@@ -118,7 +122,13 @@ body {
 .card h3 {
   margin-top: 0;
   margin-bottom: 0.7rem;
-  font-size: 1.03rem;
+  font-size: 1.08rem;
+  font-weight: 800;
+  color: #0b3b23;
+  background: #ecfdf3;
+  border: 1px solid #bbf7d0;
+  border-radius: 0.55rem;
+  padding: 0.45rem 0.6rem;
 }
 
 .card p {
@@ -159,7 +169,8 @@ body {
   color: var(--muted);
 }
 
-.video-shell {
+.video-shell,
+.iframe-shell {
   position: relative;
   border: 1px dashed var(--border);
   border-radius: 0.7rem;
@@ -168,12 +179,19 @@ body {
   background: #f8fafc;
 }
 
-#camera-feed {
+#camera-feed,
+#node-red-frame {
   width: 100%;
   display: none;
+  border: 0;
 }
 
-#camera-placeholder {
+#node-red-frame {
+  height: 420px;
+}
+
+#camera-placeholder,
+#iframe-placeholder {
   position: absolute;
   inset: 0;
   display: grid;
@@ -181,6 +199,19 @@ body {
   text-align: center;
   padding: 1rem;
   color: var(--muted);
+}
+
+.embed-grid {
+  margin-top: 1rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 0.8rem;
+}
+
+canvas {
+  width: 100% !important;
+  height: 220px !important;
+  margin-bottom: 0.8rem;
 }
 
 @media (max-width: 760px) {
