@@ -1,14 +1,190 @@
-*{box-sizing:0}
-body{font-family:Arial, sans-serif;margin:0}
-header{padding:10px;background:#0b5; color:#002; text-align:center}
-#app{display:flex;height:calc(100vh - 58px)}
-#sidebar{width:320px;padding:12px;border-right:1px solid #ddd;overflow:auto}
-#main{flex:1;display:flex;flex-direction:column;gap:12px;padding:12px}
-#map{flex:1;border:1px solid #ccc;border-radius:6px}
-#videoBox{height:200px;border:1px solid #ccc;padding:8px;border-radius:6px}
-.videoPlaceholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#f3f3f3}
-#controls{display:flex;gap:8px;margin-bottom:8px}
-button{padding:6px 8px;border-radius:4px;border:1px solid #bbb;background:#fff;cursor:pointer}
-.wp-item{padding:6px;border:1px solid #eee;margin-bottom:6px;border-radius:4px;display:flex;justify-content:space-between;align-items:center}
-.wp-item .coords{font-size:12px;color:#444}
-.wp-actions button{margin-left:4px}
+* {
+  box-sizing: border-box;
+}
+
+:root {
+  color-scheme: light;
+  --bg: #f4f6fb;
+  --panel: #ffffff;
+  --accent: #14532d;
+  --accent-soft: #ddfbe8;
+  --text: #1f2937;
+  --muted: #6b7280;
+  --border: #dbe1ea;
+}
+
+body {
+  margin: 0;
+  font-family: Inter, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.topbar {
+  padding: 1rem 1.2rem;
+  background: var(--accent);
+  color: #f0fdf4;
+}
+
+.topbar h1 {
+  margin: 0;
+  font-size: 1.35rem;
+}
+
+.topbar p {
+  margin: 0.3rem 0 0;
+  font-size: 0.95rem;
+  opacity: 0.9;
+}
+
+.layout {
+  width: min(1100px, 95%);
+  margin: 1.2rem auto;
+  display: grid;
+  gap: 1rem;
+}
+
+.menu {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+
+.menu-btn {
+  border: 1px solid var(--border);
+  background: var(--panel);
+  border-radius: 0.7rem;
+  padding: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.menu-btn:hover {
+  border-color: #90a4ba;
+  transform: translateY(-1px);
+}
+
+.menu-btn.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: #14532d;
+}
+
+.panel {
+  display: none;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 0.8rem;
+  padding: 1rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.panel.active {
+  display: block;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  margin-bottom: 0.9rem;
+}
+
+.panel-header h2 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.panel-header small {
+  color: var(--muted);
+}
+
+.grid-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.8rem;
+}
+
+.card {
+  border: 1px solid var(--border);
+  border-radius: 0.7rem;
+  padding: 0.9rem;
+  background: #fff;
+}
+
+.card h3 {
+  margin-top: 0;
+  margin-bottom: 0.7rem;
+  font-size: 1.03rem;
+}
+
+.card p {
+  margin: 0.45rem 0;
+}
+
+.status-row {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.status {
+  border-radius: 999px;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.86rem;
+}
+
+.status.ok {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status.error {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.status.neutral {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.tip,
+.hint {
+  color: var(--muted);
+}
+
+.video-shell {
+  position: relative;
+  border: 1px dashed var(--border);
+  border-radius: 0.7rem;
+  min-height: 240px;
+  overflow: hidden;
+  background: #f8fafc;
+}
+
+#camera-feed {
+  width: 100%;
+  display: none;
+}
+
+#camera-placeholder {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 1rem;
+  color: var(--muted);
+}
+
+@media (max-width: 760px) {
+  .menu {
+    grid-template-columns: 1fr;
+  }
+}
