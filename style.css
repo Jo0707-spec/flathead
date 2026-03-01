@@ -96,6 +96,7 @@ body {
 .panel-header h2 {
   margin: 0;
   font-size: 1.35rem;
+  font-size: 2rem;
   font-weight: 800;
   letter-spacing: 0.01em;
   color: #0f172a;
@@ -184,6 +185,12 @@ body {
   width: 100%;
   display: none;
   border: 0;
+}
+
+#node-red-frame {
+  height: 420px;
+}
+
 }
 
 #node-red-frame {
