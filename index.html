@@ -1,37 +1,109 @@
- <!doctype html>
+<!doctype html>
 <html lang="de">
 <head>
   <meta charset="utf-8" />
-  <title>Wegpunkte Dashboard</title>
+  <title>Flathead Control Center</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <header><h1>Wegpunkte — Map Editor</h1></header>
+  <header class="topbar">
+    <h1>Flathead Control Center</h1>
+    <p>Sensorik, Standort und Kamera für den Raspberry Pi</p>
+  </header>
 
-  <div id="app">
-    <aside id="sidebar">
-      <h2>Wegpunkte</h2>
-      <div id="controls">
-        <button id="exportGeo">Export GeoJSON</button>
-        <button id="exportCSV">Export CSV</button>
-        <button id="clearAll">Alle löschen</button>
-      </div>
-      <div id="wpList"></div>
-    </aside>
+  <main class="layout">
+    <section class="menu" aria-label="Navigation">
+      <h2>Main Page</h2>
+      <button class="menu-btn active" data-target="dashboard">1) Sensor-Daten Dashboard</button>
+      <button class="menu-btn" data-target="location">2) Aufenthaltsort des Raspberry</button>
+      <button class="menu-btn" data-target="camera">3) Live Kamera Feed</button>
+    </section>
 
-    <main id="main">
-      <div id="map"></div>
-      <div id="videoBox">
-        <h3>Video</h3>
-        <div class="videoPlaceholder">Video-Stream Platzhalter</div>
-      </div>
-    </main>
-  </div>
+    <section class="content">
+      <article id="panel-dashboard" class="panel active">
+        <h2>Sensor-Daten Dashboard</h2>
+        <p class="subtitle">Live-Werte aus Node-RED (MQTT/HTTP/WebSocket)</p>
 
-  <!-- Wenn du Socket.IO verwenden willst (server muss laufen): -->
-  <!-- <script src="/socket.io/socket.io.js"></script> -->
+        <div class="grid">
+          <div class="card">
+            <h3>Temperatur</h3>
+            <p>Außen: <strong id="tempOutside">-- °C</strong></p>
+            <p>Innen: <strong id="tempInside">-- °C</strong></p>
+          </div>
+
+          <div class="card">
+            <h3>Humidity</h3>
+            <p>Außen: <strong id="humOutside">-- %</strong></p>
+            <p>Innen: <strong id="humInside">-- %</strong></p>
+          </div>
+
+          <div class="card">
+            <h3>Himmelsrichtung</h3>
+            <p>Richtung: <strong id="heading">--°</strong></p>
+            <p id="headingText">Unbekannt</p>
+          </div>
+
+          <div class="card">
+            <h3>Distanz zu Objekten</h3>
+            <p><strong id="distance">-- cm</strong></p>
+            <small>Wird alle 10 Sekunden aktualisiert</small>
+          </div>
+        </div>
+
+        <p class="hint">Beispiel Node-RED Endpunkt für JSON: <code>/api/telemetry/latest</code></p>
+      </article>
+
+      <article id="panel-location" class="panel">
+        <h2>Aufenthaltsort des Raspberry</h2>
+        <p class="subtitle">GPS-Punkt aus Node-RED oder LoRa-Gateway</p>
+
+        <div id="map"></div>
+
+        <div class="location-meta">
+          <p>Lat: <strong id="lat">--</strong></p>
+          <p>Lng: <strong id="lng">--</strong></p>
+          <p>Letztes Update: <strong id="gpsTimestamp">--</strong></p>
+        </div>
+
+        <div class="ideas">
+          <h3>Ideen für die Umsetzung</h3>
+          <ul>
+            <li>Node-RED nimmt GPS vom Raspberry an (z. B. via Serial/NMEA oder MQTT).</li>
+            <li>Bei LoRa: Pico 2 als Empfänger dekodiert GPS und sendet es per MQTT/HTTP an Node-RED.</li>
+            <li>Node-RED speichert letzte Position in InfluxDB/SQLite + sendet Live-Update per WebSocket.</li>
+            <li>Zusätzlich Geofencing-Alarm auf der Karte (z. B. "außerhalb erlaubter Zone").</li>
+          </ul>
+        </div>
+      </article>
+
+      <article id="panel-camera" class="panel">
+        <h2>Live Kamera Feed</h2>
+        <p class="subtitle">Stream vom Raspberry (z. B. WebRTC, MJPEG oder HLS)</p>
+
+        <div class="camera-wrap">
+          <img id="cameraFeed" src="" alt="Kamera Feed" />
+          <p id="cameraPlaceholder">Kein Stream verbunden. Trage unten eine Stream-URL ein.</p>
+        </div>
+
+        <div class="camera-controls">
+          <input id="cameraUrl" type="text" placeholder="http://raspberrypi.local:8081/stream.mjpg" />
+          <button id="connectCamera">Stream verbinden</button>
+        </div>
+
+        <div class="ideas">
+          <h3>Node-RED Kamera-Integration</h3>
+          <ul>
+            <li>Einfach: MJPEG-Stream vom Pi in <code>&lt;img&gt;</code> einbinden.</li>
+            <li>Stabiler in Browsern: HLS-Stream (mit hls.js) oder WebRTC.</li>
+            <li>Node-RED kann als Proxy dienen, damit nur ein Port nach außen geöffnet wird.</li>
+            <li>Optional Snapshot-Button in Node-RED Dashboard + Speicherung mit Zeitstempel.</li>
+          </ul>
+        </div>
+      </article>
+    </section>
+  </main>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="app.js"></script>
