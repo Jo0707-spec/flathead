@@ -228,6 +228,7 @@ Du kannst diesen Block fast direkt übernehmen:
 ---
 
 ## Optional: Node-RED in Website einbetten (Lösung 1)
+## Node-RED in Website einbetten (Lösung 1)
 
 1. Öffne `app.js`
 2. Setze:
@@ -240,6 +241,13 @@ nodeRedDashboardUrl: 'http://RASPBERRY_PI:1880/ui'
 4. Falls die Website auf anderer Domain läuft, setze passende Header (`X-Frame-Options`/`Content-Security-Policy`), damit iFrame-Einbettung erlaubt ist.
 
 ---
+4. Falls die Website auf anderer Domain läuft, setze in Node-RED/Caddy/Nginx passende Header (`X-Frame-Options`/`Content-Security-Policy`), damit iFrame-Einbettung erlaubt ist.
+
+## Eigene HTML-Grafiken aus Node-RED Daten (Lösung 2)
+
+- Die Seite rendert Chart.js Grafiken in `index.html` (Canvas).
+- `app.js` lädt periodisch `sensorHistoryUrl` und aktualisiert die Kurven.
+- So bleibt das Frontend komplett in deiner Website, während Node-RED nur Daten liefert.
 
 ## Schnellstart lokal
 
