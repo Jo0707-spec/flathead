@@ -1,1 +1,102 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Flathead Control Center</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header class="hero">
+      <h1>Flathead – Raspberry Monitoring</h1>
+      <p>
+        Startversion mit Dummy-Daten für Node-RED, GPS/LoRa Standort und Live-Kamera
+      </p>
+    </header>
 
+    <main class="container">
+      <section class="main-menu">
+        <h2>Main Page</h2>
+        <div class="menu-grid">
+          <a class="menu-card" href="#dashboard">1) Sensor-Daten Dashboard</a>
+          <a class="menu-card" href="#location">2) Aufenthaltsort des Raspberry</a>
+          <a class="menu-card" href="#camera">3) Live Kamera Feed</a>
+        </div>
+      </section>
+
+      <section id="dashboard" class="panel">
+        <h2>Sensor-Daten Dashboard</h2>
+        <p class="muted">Aktuell Demo-Werte – später über Node-RED Endpunkte ersetzbar.</p>
+        <div class="stats-grid">
+          <article class="stat-card">
+            <h3>Temperatur außen</h3>
+            <p id="tempOutside" class="value">-- °C</p>
+          </article>
+          <article class="stat-card">
+            <h3>Temperatur innen</h3>
+            <p id="tempInside" class="value">-- °C</p>
+          </article>
+          <article class="stat-card">
+            <h3>Humidity außen</h3>
+            <p id="humOutside" class="value">-- %</p>
+          </article>
+          <article class="stat-card">
+            <h3>Humidity innen</h3>
+            <p id="humInside" class="value">-- %</p>
+          </article>
+          <article class="stat-card">
+            <h3>Himmelsrichtung</h3>
+            <p id="heading" class="value">--</p>
+          </article>
+          <article class="stat-card accent">
+            <h3>Distanz zu Objekten</h3>
+            <p id="distance" class="value">-- cm</p>
+            <small>Update alle 10 Sekunden</small>
+          </article>
+        </div>
+      </section>
+
+      <section id="location" class="panel">
+        <h2>Aufenthaltsort des Raspberry</h2>
+        <div class="location-grid">
+          <article class="info-card">
+            <h3>Live Standort (Dummy)</h3>
+            <p><strong>Latitude:</strong> <span id="lat">--</span></p>
+            <p><strong>Longitude:</strong> <span id="lng">--</span></p>
+            <p><strong>Quelle:</strong> <span id="source">--</span></p>
+            <p><strong>Genauigkeit:</strong> <span id="accuracy">--</span> m</p>
+          </article>
+          <article class="info-card">
+            <h3>Vorschläge für echte Umsetzung</h3>
+            <ul>
+              <li>GPS-Modul am Raspberry + Node-RED `serial in` Node.</li>
+              <li>LoRa als Fallback: Pico sendet Koordinaten, Raspberry visualisiert sie.</li>
+              <li>Geofence-Alarm in Node-RED (Benachrichtigung bei Bereichs-Verlassen).</li>
+              <li>OpenStreetMap/Leaflet Karte mit aktuellem Marker + Track.</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <section id="camera" class="panel">
+        <h2>Live Kamera Feed</h2>
+        <div class="camera-wrap">
+          <img
+            src="https://placehold.co/960x540/111827/9ca3af?text=Dummy+Kamera+Feed"
+            alt="Dummy Kamera Feed"
+          />
+          <p class="muted">
+            Idee: Kamera-Stream z. B. über `libcamera-vid` + WebRTC oder MJPEG,
+            eingebunden per Node-RED (UI Template oder HTTP Endpoint).
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <p>Flathead Starter • Dummy-Daten aktiv • bereit für Node-RED Integration</p>
+    </footer>
+
+    <script src="app.js"></script>
+  </body>
+</html>
