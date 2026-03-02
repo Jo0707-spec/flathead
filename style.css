@@ -102,10 +102,15 @@ body {
   color: var(--muted);
 }
 
-.grid-cards {
+.grid-cards,
+.chart-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 0.8rem;
+}
+
+.chart-grid {
+  margin-top: 0.8rem;
 }
 
 .card {
@@ -123,6 +128,19 @@ body {
 
 .card p {
   margin: 0.45rem 0;
+}
+
+.chart-card svg {
+  width: 100%;
+  height: 140px;
+  border: 1px solid #e7edf5;
+  border-radius: 0.5rem;
+  background: linear-gradient(to bottom, #fbfdff, #f3f7fc);
+}
+
+.chart-card text {
+  fill: #6b7280;
+  font-size: 5px;
 }
 
 .status-row {
@@ -156,6 +174,36 @@ body {
 
 .tip,
 .hint {
+  color: var(--muted);
+}
+
+.embed-card {
+  margin-top: 0.8rem;
+}
+
+.embed-shell {
+  position: relative;
+  border: 1px dashed var(--border);
+  border-radius: 0.7rem;
+  min-height: 300px;
+  overflow: hidden;
+  background: #f8fafc;
+}
+
+#nodered-embed {
+  width: 100%;
+  min-height: 320px;
+  border: 0;
+  display: none;
+}
+
+#embed-placeholder {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 1rem;
   color: var(--muted);
 }
 
