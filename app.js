@@ -5,6 +5,10 @@ const config = {
   locationUrl: 'http://192.168.68.122:1880/api/location/latest',
   // Beispiel: 'http://raspberrypi.local:8080/snapshot.jpg'
   cameraFeedUrl: '',
+  nodeRedDashboardEmbedUrl: '',
+  sensorPollMs: 10000,
+  locationPollMs: 15000,
+  historyLimit: 20,
   cameraRefreshMs: 5000,
   // Beispiel: 'http://raspberrypi.local:1880/ui' oder '/ui'
   nodeRedDashboardUrl: '',
@@ -40,6 +44,19 @@ const iframePlaceholderEl = document.getElementById('iframe-placeholder');
 let tempChart;
 let humidityChart;
 
+const nodeRedEmbedEl = document.getElementById('nodered-embed');
+const nodeRedEmbedPlaceholderEl = document.getElementById('embed-placeholder');
+
+const tempChartEl = document.getElementById('temp-chart');
+const humChartEl = document.getElementById('hum-chart');
+
+const history = {
+  tempOutside: [],
+  tempInside: [],
+  humidityOutside: [],
+  humidityInside: [],
+};
+
 menuButtons.forEach((btn) => {
   btn.addEventListener('click', () => {
     menuButtons.forEach((button) => button.classList.remove('active'));
@@ -61,11 +78,64 @@ function safeValue(value, digits = 1) {
   return value.toFixed(digits);
 }
 
+function pushHistoryEntry(series, value) {
+  if (typeof value !== 'number' || Number.isNaN(value)) return;
+  series.push(value);
+  if (series.length > config.historyLimit) {
+    series.shift();
+  }
+}
+
+function buildPolyline(values, color, min, max) {
+  if (!values.length || Number.isNaN(min) || Number.isNaN(max) || min === max) {
+    return '';
+  }
+
+  const points = values
+    .map((value, index) => {
+      const x = values.length === 1 ? 0 : (index / (values.length - 1)) * 100;
+      const y = 35 - ((value - min) / (max - min)) * 30;
+      return `${x.toFixed(2)},${y.toFixed(2)}`;
+    })
+    .join(' ');
+
+  return `<polyline points="${points}" fill="none" stroke="${color}" stroke-width="1.2" stroke-linecap="round" />`;
+}
+
+function renderSparkline(svgEl, firstSeries, secondSeries) {
+  const values = [...firstSeries, ...secondSeries];
+  if (!values.length) {
+    svgEl.innerHTML = '<text x="50" y="24" text-anchor="middle">Noch keine Daten</text>';
+    return;
+  }
+
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+
+  svgEl.innerHTML = [
+    '<rect x="0" y="0" width="100" height="40" fill="transparent"></rect>',
+    '<line x1="0" y1="35" x2="100" y2="35" stroke="#dbe1ea" stroke-width="0.8"></line>',
+    buildPolyline(firstSeries, '#14532d', min, max),
+    buildPolyline(secondSeries, '#2563eb', min, max),
+  ].join('');
+}
+
+function renderCharts() {
+  renderSparkline(tempChartEl, history.tempOutside, history.tempInside);
+  renderSparkline(humChartEl, history.humidityOutside, history.humidityInside);
+}
+
 function updateSensorUI(data) {
   fields.tempOut.textContent = safeValue(data?.temperature?.outside);
   fields.tempIn.textContent = safeValue(data?.temperature?.inside);
   fields.humOut.textContent = safeValue(data?.humidity?.outside);
   fields.humIn.textContent = safeValue(data?.humidity?.inside);
+
+  pushHistoryEntry(history.tempOutside, data?.temperature?.outside);
+  pushHistoryEntry(history.tempInside, data?.temperature?.inside);
+  pushHistoryEntry(history.humidityOutside, data?.humidity?.outside);
+  pushHistoryEntry(history.humidityInside, data?.humidity?.inside);
+  renderCharts();
 
   const heading = data?.heading;
   fields.heading.textContent = heading?.cardinal
@@ -192,6 +262,19 @@ function setupCameraFeed() {
   cameraPlaceholderEl.style.display = 'none';
 }
 
+function setupNodeRedEmbed() {
+  if (!config.nodeRedDashboardEmbedUrl) {
+    nodeRedEmbedEl.style.display = 'none';
+    nodeRedEmbedPlaceholderEl.style.display = 'grid';
+    return;
+  }
+
+  nodeRedEmbedEl.src = config.nodeRedDashboardEmbedUrl;
+  nodeRedEmbedEl.style.display = 'block';
+  nodeRedEmbedPlaceholderEl.style.display = 'none';
+}
+
+renderCharts();
 function refreshCameraFeed() {
   if (!config.cameraFeedUrl) return;
 

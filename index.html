@@ -23,25 +23,33 @@
     <section id="dashboard" class="panel active" aria-labelledby="dashboard-title">
       <div class="panel-header">
         <h2 id="dashboard-title">Sensor-Daten Dashboard</h2>
-        <small>Live-Werte via Node-RED</small>
+        <small>Werte via HTTP von Node-RED</small>
       </div>
 
       <div class="grid-cards">
         <article class="card">
-          <h3>Temperatur</h3>
-          <p>Außen: <strong id="temp-out">--</strong> °C</p>
-          <p>Innen: <strong id="temp-in">--</strong> °C</p>
+          <h3>Temperatur Außen</h3>
+          <p><strong id="temp-out">--</strong> °C</p>
+        </article>
+
+        <article class="card">
+          <h3>Temperatur Innen</h3>
+          <p><strong id="temp-in">--</strong> °C</p>
+        </article>
+
+        <article class="card">
+          <h3>Luftfeuchtigkeit Außen</h3>
+          <p><strong id="hum-out">--</strong> %</p>
+        </article>
+
+        <article class="card">
+          <h3>Luftfeuchtigkeit Innen</h3>
+          <p><strong id="hum-in">--</strong> %</p>
         </article>
 
         <article class="card">
           <h3>Himmelsrichtung</h3>
-          <p>Richtung: <strong id="heading">--</strong></p>
-        </article>
-
-        <article class="card">
-          <h3>Luftfeuchtigkeit</h3>
-          <p>Außen: <strong id="hum-out">--</strong> %</p>
-          <p>Innen: <strong id="hum-in">--</strong> %</p>
+          <p><strong id="heading">--</strong></p>
         </article>
 
         <article class="card">
@@ -51,11 +59,33 @@
         </article>
       </div>
 
+      <div class="chart-grid">
+        <article class="card chart-card">
+          <h3>Temperatur-Verlauf</h3>
+          <svg id="temp-chart" viewBox="0 0 100 40" role="img" aria-label="Temperatur Verlauf"></svg>
+          <small>Letzte 20 Messpunkte (innen + außen)</small>
+        </article>
+
+        <article class="card chart-card">
+          <h3>Luftfeuchtigkeit-Verlauf</h3>
+          <svg id="hum-chart" viewBox="0 0 100 40" role="img" aria-label="Luftfeuchtigkeit Verlauf"></svg>
+          <small>Letzte 20 Messpunkte (innen + außen)</small>
+        </article>
+      </div>
+
       <div class="status-row">
         <span id="sensor-status" class="status neutral">Warte auf Sensordaten …</span>
         <span id="last-updated">Letztes Update: --</span>
       </div>
 
+      <article class="card embed-card">
+        <h3>Node-RED Dashboard einbetten (Lösung 1)</h3>
+        <p class="hint">Setze in <code>app.js</code> die URL <code>nodeRedDashboardEmbedUrl</code>, um dein bestehendes Node-RED Dashboard direkt einzubetten.</p>
+        <div class="embed-shell">
+          <iframe id="nodered-embed" title="Node-RED Dashboard" loading="lazy"></iframe>
+          <div id="embed-placeholder">Noch keine Embed-URL gesetzt. Beispiel: <code>http://localhost:1880/ui</code></div>
+        </div>
+      </article>
       <div class="embed-grid">
         <article class="card">
           <h3>Node-RED Dashboard (Einbettung)</h3>

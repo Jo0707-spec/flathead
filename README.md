@@ -87,6 +87,8 @@ Die Startseite hat drei Bereiche:
    - Luftfeuchtigkeit außen / innen
    - Himmelsrichtung
    - Distanz zu Objekten (10s Update)
+   - Verlaufsdiagramme (letzte 20 Werte) für Temperatur & Luftfeuchtigkeit
+   - Optionales Embed eines bestehenden Node-RED Dashboards (`iframe`)
    - **Option 1:** Node-RED Dashboard direkt als iFrame eingebettet
    - **Option 2:** Eigene HTML-Grafiken (Chart.js) mit Daten aus Node-RED Backend
 2. **Aufenthaltsort des Raspberry**
@@ -94,14 +96,28 @@ Die Startseite hat drei Bereiche:
 3. **Live Kamera Feed**
    - Frei konfigurierbare Stream-URL (z. B. MJPEG/HLS)
 
-Zusätzlich gibt es einen Ideenblock für GPS-/LoRa-Integration.
-
 ## Erwartete Node-RED Endpunkte
 
 - `GET /api/sensors/latest`
 
 ```json
 {
+  "temperature": {
+    "outside": 13.4,
+    "inside": 22.1
+  },
+  "humidity": {
+    "outside": 72.5,
+    "inside": 45.2
+  },
+  "heading": {
+    "deg": 211,
+    "cardinal": "SW"
+  },
+  "distanceCm": 86
+}
+```
+
   "temperature": { "outside": 13.4, "inside": 22.1 },
   "humidity": { "outside": 72.5, "inside": 45.2 },
   "heading": { "deg": 211, "cardinal": "SW" },
@@ -139,6 +155,22 @@ Zusätzlich gibt es einen Ideenblock für GPS-/LoRa-Integration.
 }
 ```
 
+## Lösung 1: Node-RED Dashboard in Website einbetten
+
+Wenn du bereits ein Node-RED Dashboard gebaut hast (z. B. unter `/ui`), kannst du es direkt einbetten:
+
+1. Öffne `app.js`
+2. Setze `nodeRedDashboardEmbedUrl`, z. B.:
+
+```js
+nodeRedDashboardEmbedUrl: 'http://localhost:1880/ui',
+```
+
+Dann erscheint es im Dashboard-Tab in der Karte **"Node-RED Dashboard einbetten (Lösung 1)"**.
+
+## Lösung 2: Grafiken direkt aus Backend-Daten erzeugen
+
+Ohne Node-RED UI kannst du nur JSON-Endpunkte liefern (`/api/sensors/latest`) und das Frontend zeichnet die Diagramme selbst. Diese Variante ist oft flexibler für Branding und Website-Integration.
 ---
 
 ## Lösung 2 (deine Wahl): Node-RED als Backend, Grafiken in deiner Website
