@@ -3,7 +3,9 @@ const config = {
   sensorUrl: 'http://192.168.68.122:1880/api/sensors/latest',
   sensorHistoryUrl: 'http://192.168.68.122:1880/api/sensors/history',
   locationUrl: 'http://192.168.68.122:1880/api/location/latest',
-  chartPollMs: 30000,
+  // Beispiel: 'http://raspberrypi.local:8080/snapshot.jpg'
+  cameraFeedUrl: '',
+  cameraRefreshMs: 5000,
   // Beispiel: 'http://raspberrypi.local:1880/ui' oder '/ui'
   nodeRedDashboardUrl: '',
   sensorPollMs: 10000,
@@ -185,9 +187,16 @@ function setupCameraFeed() {
     return;
   }
 
-  cameraFeedEl.src = config.cameraFeedUrl;
+  refreshCameraFeed();
   cameraFeedEl.style.display = 'block';
   cameraPlaceholderEl.style.display = 'none';
+}
+
+function refreshCameraFeed() {
+  if (!config.cameraFeedUrl) return;
+
+  const separator = config.cameraFeedUrl.includes('?') ? '&' : '?';
+  cameraFeedEl.src = `${config.cameraFeedUrl}${separator}t=${Date.now()}`;
 }
 
 function setupNodeRedEmbed() {
@@ -212,10 +221,11 @@ setupNodeRedEmbed();
 setInterval(refreshSensors, config.sensorPollMs);
 setInterval(refreshLocation, config.locationPollMs);
 setInterval(refreshCharts, config.chartPollMs);
+setInterval(refreshCameraFeed, config.cameraRefreshMs);
 
 setTimeout(() => {
   updateChart(tempChart,
-    ["10:00","10:01","10:02","10:03"],
-    [21,22,23,24]
+    ['10:00', '10:01', '10:02', '10:03'],
+    [21, 22, 23, 24],
   );
-};
+}, 250);
