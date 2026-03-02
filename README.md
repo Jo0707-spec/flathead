@@ -2,60 +2,123 @@
 
 Weboberfläche für das mobile Gefahrenerkennungssystem Flathead.
 
-## Aufbau
+## TL;DR – Node-RED so einfach, dass es wirklich jeder schafft
 
-Die Startseite hat drei Bereiche:
+Wenn du nur das Wichtigste willst, mach **genau diese 6 Schritte**:
 
-1. **Sensor-Daten Dashboard**
-   - Temperatur außen / innen
-   - Humidity außen / innen
-   - Himmelsrichtung
-   - Distanz zu Objekten (10s Update)
-2. **Aufenthaltsort des Raspberry**
-   - GPS-Daten auf Leaflet-Karte
-3. **Live Kamera Feed**
-   - Frei konfigurierbare Stream-URL (z. B. MJPEG/HLS)
+1. **Node-RED starten**
+   ```bash
+   node-red
+   ```
+2. Im Browser öffnen: `http://DEINE-IP:1880`
+3. In Node-RED oben rechts auf **Import** klicken und Datei `node-red-flow-basic.json` importieren.
+4. Auf **Deploy** klicken.
+5. Diese URLs im Browser testen:
+   - `http://DEINE-IP:1880/api/sensors/latest`
+   - `http://DEINE-IP:1880/api/sensors/history`
+   - `http://DEINE-IP:1880/api/location/latest`
+6. In `app.js` die URLs eintragen (falls Website nicht auf demselben Host läuft).
 
-Zusätzlich gibt es einen Ideenblock für GPS-/LoRa-Integration.
+Wenn diese 6 Schritte laufen, zeigt deine Website Werte + Charts an.
 
-## Erwartete Node-RED Endpunkte
+---
 
-- `GET /api/sensors`
+## Baby-Check Schritt-für-Schritt (mit "wo klicken")
 
-```json
-{
-  "tempOutside": 13.4,
-  "tempInside": 22.1,
-  "humidityOutside": 72.5,
-  "humidityInside": 45.2,
-  "heading": 211,
-  "direction": "SW",
-  "distanceCm": 86
-}
+### 1) Node-RED öffnen
+
+- Auf deinem Raspberry / Server:
+  ```bash
+  node-red
+  ```
+- Im Browser: `http://DEINE-IP:1880`
+
+### 2) Fertigen Basic-Flow importieren
+
+- In Node-RED oben rechts auf **☰**
+- **Import**
+- Datei `node-red-flow-basic.json` auswählen
+- **Import** drücken
+
+Dieser Flow liefert dir sofort Demo-Daten über API-Endpunkte.
+
+### 3) Deploy klicken
+
+- Oben rechts auf den roten Button **Deploy**.
+
+### 4) API testen (wichtig)
+
+Öffne im Browser:
+
+- `http://DEINE-IP:1880/api/sensors/latest`
+- `http://DEINE-IP:1880/api/sensors/history`
+- `http://DEINE-IP:1880/api/location/latest`
+
+Wenn JSON angezeigt wird: ✅ API ist ok.
+
+### 5) Website mit Node-RED verbinden
+
+Öffne `app.js` und prüfe diese Werte:
+
+```js
+sensorUrl: '/api/sensors/latest',
+sensorHistoryUrl: '/api/sensors/history',
+locationUrl: '/api/location/latest',
+chartPollMs: 30000,
 ```
 
-- `GET /api/location`
+#### Fall A: Website läuft auf dem gleichen Host wie Node-RED
+Dann **so lassen** (relative URLs).
 
-```json
-{
-  "lat": 48.2082,
-  "lng": 16.3738,
-  "accuracy": 9,
-  "source": "GPS + LoRa",
-  "ts": 1710000000000
-}
+#### Fall B: Website läuft woanders
+Trage volle URLs ein:
+
+```js
+sensorUrl: 'http://192.168.1.50:1880/api/sensors/latest',
+sensorHistoryUrl: 'http://192.168.1.50:1880/api/sensors/history',
+locationUrl: 'http://192.168.1.50:1880/api/location/latest',
 ```
 
-Wenn kein Endpunkt erreichbar ist, zeigt die Oberfläche Demo-Werte an.
-
-## Schnellstart
-
-Öffne `index.html` lokal oder serviere das Repo mit einem simplen Webserver, zum Beispiel:
+### 6) Website starten
 
 ```bash
 python3 -m http.server 8080
 ```
 
-Dann im Browser:
+Dann: `http://localhost:8080`
 
-`http://localhost:8080`
+---
+
+## Was ist in `node-red-flow-basic.json` drin?
+
+Der Basic-Flow macht absichtlich nur 3 Dinge:
+
+- liefert einen aktuellen Sensorwert (`/api/sensors/latest`)
+- liefert einen kleinen Verlauf für Charts (`/api/sensors/history`)
+- liefert eine Demo-Position (`/api/location/latest`)
+
+So kannst du **ohne echte Hardware** zuerst Frontend + API prüfen.
+
+---
+
+
+## Dashboard-Layout (aktuell)
+
+- Oben: Kacheln mit den aktuellen Werten (Temperatur/Luftfeuchtigkeit etc.)
+- Unten im Sensor-Dashboard: **links Temperatur-Diagramm**, **rechts Luftfeuchtigkeits-Diagramm**
+- Die Werte in den Kacheln werden mit den neuesten Diagrammwerten synchronisiert.
+
+---
+
+## Häufige Fehler (ultra-kurz)
+
+- **Leere Charts** → `/api/sensors/history` liefert kein Array.
+- **Fehler im Browser (CORS)** → Frontend und Node-RED auf gleiche Domain/Port legen oder CORS korrekt setzen.
+- **404 bei API** → Flow nicht deployed oder URL falsch.
+
+---
+
+## Danach: echte Sensoren anschließen
+
+Wenn alles läuft, ersetze im Flow die Demo-Funktion durch echte Inputs (MQTT, GPIO, Serial etc.).
+Die API-Struktur soll gleich bleiben, dann muss das Frontend nicht geändert werden.

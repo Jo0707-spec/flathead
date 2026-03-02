@@ -5,6 +5,7 @@
   <title>Flathead Control Center</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
   <header class="topbar">
@@ -54,6 +55,19 @@
         <span id="sensor-status" class="status neutral">Warte auf Sensordaten …</span>
         <span id="last-updated">Letztes Update: --</span>
       </div>
+
+      <div class="chart-grid">
+        <article class="card">
+          <h3>Temperatur-Diagramm</h3>
+          <canvas id="temp-chart" height="220" aria-label="Temperaturverlauf"></canvas>
+        </article>
+
+        <article class="card">
+          <h3>Luftfeuchtigkeits-Diagramm</h3>
+          <canvas id="humidity-chart" height="220" aria-label="Luftfeuchtigkeitsverlauf"></canvas>
+        </article>
+      </div>
+      <small class="hint">Die Werte in den Kacheln oben werden mit den neuesten Daten aus den Diagrammen synchronisiert.</small>
     </section>
 
     <section id="location" class="panel" aria-labelledby="location-title">

@@ -1,10 +1,12 @@
 const config = {
   // Passe die Endpunkte auf deine Node-RED HTTP-In Nodes an:
   sensorUrl: '/api/sensors/latest',
+  sensorHistoryUrl: '/api/sensors/history',
   locationUrl: '/api/location/latest',
   cameraFeedUrl: '',
   sensorPollMs: 10000,
   locationPollMs: 15000,
+  chartPollMs: 30000,
 };
 
 const menuButtons = document.querySelectorAll('.menu-btn');
@@ -28,6 +30,9 @@ const fields = {
 
 const cameraFeedEl = document.getElementById('camera-feed');
 const cameraPlaceholderEl = document.getElementById('camera-placeholder');
+
+let tempChart;
+let humidityChart;
 
 menuButtons.forEach((btn) => {
   btn.addEventListener('click', () => {
@@ -88,6 +93,125 @@ async function fetchJson(url) {
   return response.json();
 }
 
+function createLineChart(elementId, datasets) {
+  const canvas = document.getElementById(elementId);
+  if (!canvas || typeof Chart === 'undefined') return null;
+
+  return new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets,
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: {
+          ticks: { maxTicksLimit: 6 },
+        },
+      },
+    },
+  });
+}
+
+function setupCharts() {
+  tempChart = createLineChart('temp-chart', [
+    {
+      label: 'Außen (°C)',
+      data: [],
+      borderColor: '#0284c7',
+      backgroundColor: '#0284c722',
+      fill: true,
+      tension: 0.25,
+      pointRadius: 2,
+    },
+    {
+      label: 'Innen (°C)',
+      data: [],
+      borderColor: '#f97316',
+      backgroundColor: '#f9731622',
+      fill: false,
+      tension: 0.25,
+      pointRadius: 2,
+    },
+  ]);
+
+  humidityChart = createLineChart('humidity-chart', [
+    {
+      label: 'Außen (%)',
+      data: [],
+      borderColor: '#16a34a',
+      backgroundColor: '#16a34a22',
+      fill: true,
+      tension: 0.25,
+      pointRadius: 2,
+    },
+    {
+      label: 'Innen (%)',
+      data: [],
+      borderColor: '#7c3aed',
+      backgroundColor: '#7c3aed22',
+      fill: false,
+      tension: 0.25,
+      pointRadius: 2,
+    },
+  ]);
+}
+
+function updateChart(chart, labels, dataSeries) {
+  if (!chart) return;
+  chart.data.labels = labels;
+  chart.data.datasets.forEach((dataset, index) => {
+    dataset.data = dataSeries[index] || [];
+  });
+  chart.update();
+}
+
+function syncSummaryTableWithHistory(points) {
+  const latest = points[points.length - 1];
+  if (!latest) return;
+
+  const mergedData = {
+    temperature: {
+      outside: latest?.temperature?.outside,
+      inside: latest?.temperature?.inside,
+    },
+    humidity: {
+      outside: latest?.humidity?.outside,
+      inside: latest?.humidity?.inside,
+    },
+  };
+
+  updateSensorUI(mergedData);
+}
+
+async function refreshCharts() {
+  try {
+    const points = await fetchJson(config.sensorHistoryUrl);
+    if (!Array.isArray(points) || points.length === 0) return;
+
+    const labels = points.map((point) => {
+      const ts = point?.timestamp;
+      return ts ? new Date(ts).toLocaleTimeString('de-DE') : '--';
+    });
+
+    updateChart(tempChart, labels, [
+      points.map((point) => point?.temperature?.outside ?? null),
+      points.map((point) => point?.temperature?.inside ?? null),
+    ]);
+
+    updateChart(humidityChart, labels, [
+      points.map((point) => point?.humidity?.outside ?? null),
+      points.map((point) => point?.humidity?.inside ?? null),
+    ]);
+
+    syncSummaryTableWithHistory(points);
+  } catch {
+    // Graphen bleiben auf letztem Stand.
+  }
+}
+
 async function refreshSensors() {
   try {
     const data = await fetchJson(config.sensorUrl);
@@ -119,9 +243,12 @@ function setupCameraFeed() {
   cameraPlaceholderEl.style.display = 'none';
 }
 
+setupCharts();
 refreshSensors();
 refreshLocation();
+refreshCharts();
 setupCameraFeed();
 
 setInterval(refreshSensors, config.sensorPollMs);
 setInterval(refreshLocation, config.locationPollMs);
+setInterval(refreshCharts, config.chartPollMs);
