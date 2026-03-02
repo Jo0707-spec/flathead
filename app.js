@@ -57,6 +57,9 @@ const history = {
   humidityInside: [],
 };
 
+let tempChart;
+let humidityChart;
+
 menuButtons.forEach((btn) => {
   btn.addEventListener('click', () => {
     menuButtons.forEach((button) => button.classList.remove('active'));

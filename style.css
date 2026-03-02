@@ -274,4 +274,8 @@ canvas {
   .menu {
     grid-template-columns: 1fr;
   }
+
+  .chart-grid {
+    grid-template-columns: 1fr;
+  }
 }
