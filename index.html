@@ -23,25 +23,33 @@
     <section id="dashboard" class="panel active" aria-labelledby="dashboard-title">
       <div class="panel-header">
         <h2 id="dashboard-title">Sensor-Daten Dashboard</h2>
-        <small>Live-Werte via Node-RED</small>
+        <small>Werte via HTTP von Node-RED</small>
       </div>
 
       <div class="grid-cards">
         <article class="card">
-          <h3>Temperatur</h3>
-          <p>Außen: <strong id="temp-out">--</strong> °C</p>
-          <p>Innen: <strong id="temp-in">--</strong> °C</p>
+          <h3>Temperatur Außen</h3>
+          <p><strong id="temp-out">--</strong> °C</p>
+        </article>
+
+        <article class="card">
+          <h3>Temperatur Innen</h3>
+          <p><strong id="temp-in">--</strong> °C</p>
+        </article>
+
+        <article class="card">
+          <h3>Luftfeuchtigkeit Außen</h3>
+          <p><strong id="hum-out">--</strong> %</p>
+        </article>
+
+        <article class="card">
+          <h3>Luftfeuchtigkeit Innen</h3>
+          <p><strong id="hum-in">--</strong> %</p>
         </article>
 
         <article class="card">
           <h3>Himmelsrichtung</h3>
-          <p>Richtung: <strong id="heading">--</strong></p>
-        </article>
-
-        <article class="card">
-          <h3>Luftfeuchtigkeit</h3>
-          <p>Außen: <strong id="hum-out">--</strong> %</p>
-          <p>Innen: <strong id="hum-in">--</strong> %</p>
+          <p><strong id="heading">--</strong></p>
         </article>
 
         <article class="card">
@@ -51,23 +59,49 @@
         </article>
       </div>
 
+      <div class="chart-grid">
+        <article class="card chart-card">
+          <h3>Temperatur-Verlauf</h3>
+          <svg id="temp-chart" viewBox="0 0 100 40" role="img" aria-label="Temperatur Verlauf"></svg>
+          <small>Letzte 20 Messpunkte (innen + außen)</small>
+        </article>
+
+        <article class="card chart-card">
+          <h3>Luftfeuchtigkeit-Verlauf</h3>
+          <svg id="hum-chart" viewBox="0 0 100 40" role="img" aria-label="Luftfeuchtigkeit Verlauf"></svg>
+          <small>Letzte 20 Messpunkte (innen + außen)</small>
+        </article>
+      </div>
+
       <div class="status-row">
         <span id="sensor-status" class="status neutral">Warte auf Sensordaten …</span>
         <span id="last-updated">Letztes Update: --</span>
       </div>
 
-      <div class="chart-grid">
+      <article class="card embed-card">
+        <h3>Node-RED Dashboard einbetten (Lösung 1)</h3>
+        <p class="hint">Setze in <code>app.js</code> die URL <code>nodeRedDashboardEmbedUrl</code>, um dein bestehendes Node-RED Dashboard direkt einzubetten.</p>
+        <div class="embed-shell">
+          <iframe id="nodered-embed" title="Node-RED Dashboard" loading="lazy"></iframe>
+          <div id="embed-placeholder">Noch keine Embed-URL gesetzt. Beispiel: <code>http://localhost:1880/ui</code></div>
+        </div>
+      </article>
+      <div class="embed-grid">
         <article class="card">
-          <h3>Temperatur-Diagramm</h3>
-          <canvas id="temp-chart" height="220" aria-label="Temperaturverlauf"></canvas>
+          <h3>Node-RED Dashboard (Einbettung)</h3>
+          <div class="iframe-shell">
+            <iframe id="node-red-frame" title="Node-RED Dashboard" loading="lazy"></iframe>
+            <div id="iframe-placeholder">Keine Dashboard-URL gesetzt. Trage sie in <code>app.js</code> ein.</div>
+          </div>
         </article>
 
         <article class="card">
-          <h3>Luftfeuchtigkeits-Diagramm</h3>
-          <canvas id="humidity-chart" height="220" aria-label="Luftfeuchtigkeitsverlauf"></canvas>
+          <h3>Eigene Grafiken (von Node-RED API)</h3>
+          <canvas id="temp-chart" height="140" aria-label="Temperaturverlauf"></canvas>
+          <canvas id="humidity-chart" height="140" aria-label="Luftfeuchtigkeitsverlauf"></canvas>
+          <small class="hint">Datenquelle: <code>/api/sensors/history</code> (konfigurierbar in <code>app.js</code>).</small>
         </article>
       </div>
-      <small class="hint">Die Werte in den Kacheln oben werden mit den neuesten Daten aus den Diagrammen synchronisiert.</small>
     </section>
 
     <section id="location" class="panel" aria-labelledby="location-title">
