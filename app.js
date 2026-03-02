@@ -1,12 +1,20 @@
 const config = {
   // Passe die Endpunkte auf deine Node-RED HTTP-In Nodes an:
-  sensorUrl: '/api/sensors/latest',
-  locationUrl: '/api/location/latest',
+  sensorUrl: 'http://192.168.68.122:1880/api/sensors/latest',
+  sensorHistoryUrl: 'http://192.168.68.122:1880/api/sensors/history',
+  locationUrl: 'http://192.168.68.122:1880/api/location/latest',
+  // Beispiel: 'http://raspberrypi.local:8080/snapshot.jpg'
   cameraFeedUrl: '',
   nodeRedDashboardEmbedUrl: '',
   sensorPollMs: 10000,
   locationPollMs: 15000,
   historyLimit: 20,
+  cameraRefreshMs: 5000,
+  // Beispiel: 'http://raspberrypi.local:1880/ui' oder '/ui'
+  nodeRedDashboardUrl: '',
+  sensorPollMs: 10000,
+  locationPollMs: 15000,
+  chartPollMs: 30000,
 };
 
 const menuButtons = document.querySelectorAll('.menu-btn');
@@ -30,6 +38,11 @@ const fields = {
 
 const cameraFeedEl = document.getElementById('camera-feed');
 const cameraPlaceholderEl = document.getElementById('camera-placeholder');
+const nodeRedFrameEl = document.getElementById('node-red-frame');
+const iframePlaceholderEl = document.getElementById('iframe-placeholder');
+
+let tempChart;
+let humidityChart;
 
 const nodeRedEmbedEl = document.getElementById('nodered-embed');
 const nodeRedEmbedPlaceholderEl = document.getElementById('embed-placeholder');
@@ -156,6 +169,68 @@ async function fetchJson(url) {
   return response.json();
 }
 
+function createLineChart(elementId, label, color) {
+  const canvas = document.getElementById(elementId);
+  if (!canvas || typeof Chart === 'undefined') return null;
+
+  return new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [{
+        label,
+        data: [],
+        borderColor: color,
+        backgroundColor: `${color}22`,
+        fill: true,
+        tension: 0.25,
+        pointRadius: 2,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: {
+          ticks: { maxTicksLimit: 6 },
+        },
+      },
+      plugins: {
+        legend: { display: true },
+      },
+    },
+  });
+}
+
+function setupCharts() {
+  tempChart = createLineChart('temp-chart', 'Temperatur außen (°C)', '#0ea5e9');
+  humidityChart = createLineChart('humidity-chart', 'Luftfeuchtigkeit außen (%)', '#16a34a');
+}
+
+function updateChart(chart, labels, values) {
+  if (!chart) return;
+  chart.data.labels = labels;
+  chart.data.datasets[0].data = values;
+  chart.update();
+}
+
+async function refreshCharts() {
+  try {
+    const points = await fetchJson(config.sensorHistoryUrl);
+    if (!Array.isArray(points) || points.length === 0) return;
+
+    const labels = points.map((point) => {
+      const ts = point?.timestamp;
+      return ts ? new Date(ts).toLocaleTimeString('de-DE') : '--';
+    });
+
+    updateChart(tempChart, labels, points.map((point) => point?.temperature?.outside ?? null));
+    updateChart(humidityChart, labels, points.map((point) => point?.humidity?.outside ?? null));
+  } catch {
+    // Graphen bleiben einfach auf dem letzten Stand.
+  }
+}
+
 async function refreshSensors() {
   try {
     const data = await fetchJson(config.sensorUrl);
@@ -182,7 +257,7 @@ function setupCameraFeed() {
     return;
   }
 
-  cameraFeedEl.src = config.cameraFeedUrl;
+  refreshCameraFeed();
   cameraFeedEl.style.display = 'block';
   cameraPlaceholderEl.style.display = 'none';
 }
@@ -200,10 +275,40 @@ function setupNodeRedEmbed() {
 }
 
 renderCharts();
+function refreshCameraFeed() {
+  if (!config.cameraFeedUrl) return;
+
+  const separator = config.cameraFeedUrl.includes('?') ? '&' : '?';
+  cameraFeedEl.src = `${config.cameraFeedUrl}${separator}t=${Date.now()}`;
+}
+
+function setupNodeRedEmbed() {
+  if (!config.nodeRedDashboardUrl) {
+    nodeRedFrameEl.style.display = 'none';
+    iframePlaceholderEl.style.display = 'grid';
+    return;
+  }
+
+  nodeRedFrameEl.src = config.nodeRedDashboardUrl;
+  nodeRedFrameEl.style.display = 'block';
+  iframePlaceholderEl.style.display = 'none';
+}
+
+setupCharts();
 refreshSensors();
 refreshLocation();
+refreshCharts();
 setupCameraFeed();
 setupNodeRedEmbed();
 
 setInterval(refreshSensors, config.sensorPollMs);
 setInterval(refreshLocation, config.locationPollMs);
+setInterval(refreshCharts, config.chartPollMs);
+setInterval(refreshCameraFeed, config.cameraRefreshMs);
+
+setTimeout(() => {
+  updateChart(tempChart,
+    ['10:00', '10:01', '10:02', '10:03'],
+    [21, 22, 23, 24],
+  );
+}, 250);

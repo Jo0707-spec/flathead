@@ -5,6 +5,7 @@
   <title>Flathead Control Center</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
   <header class="topbar">
@@ -85,6 +86,22 @@
           <div id="embed-placeholder">Noch keine Embed-URL gesetzt. Beispiel: <code>http://localhost:1880/ui</code></div>
         </div>
       </article>
+      <div class="embed-grid">
+        <article class="card">
+          <h3>Node-RED Dashboard (Einbettung)</h3>
+          <div class="iframe-shell">
+            <iframe id="node-red-frame" title="Node-RED Dashboard" loading="lazy"></iframe>
+            <div id="iframe-placeholder">Keine Dashboard-URL gesetzt. Trage sie in <code>app.js</code> ein.</div>
+          </div>
+        </article>
+
+        <article class="card">
+          <h3>Eigene Grafiken (von Node-RED API)</h3>
+          <canvas id="temp-chart" height="140" aria-label="Temperaturverlauf"></canvas>
+          <canvas id="humidity-chart" height="140" aria-label="Luftfeuchtigkeitsverlauf"></canvas>
+          <small class="hint">Datenquelle: <code>/api/sensors/history</code> (konfigurierbar in <code>app.js</code>).</small>
+        </article>
+      </div>
     </section>
 
     <section id="location" class="panel" aria-labelledby="location-title">
