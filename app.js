@@ -1,57 +1,127 @@
-const directionLabels = ['N', 'NO', 'O', 'SO', 'S', 'SW', 'W', 'NW'];
+const config = {
+  // Passe die Endpunkte auf deine Node-RED HTTP-In Nodes an:
+  sensorUrl: '/api/sensors/latest',
+  locationUrl: '/api/location/latest',
+  cameraFeedUrl: '',
+  sensorPollMs: 10000,
+  locationPollMs: 15000,
+};
 
-function randomRange(min, max, decimals = 1) {
-  const value = Math.random() * (max - min) + min;
-  return Number(value.toFixed(decimals));
+const menuButtons = document.querySelectorAll('.menu-btn');
+const panels = document.querySelectorAll('.panel');
+
+const sensorStatus = document.getElementById('sensor-status');
+const lastUpdated = document.getElementById('last-updated');
+
+const fields = {
+  tempOut: document.getElementById('temp-out'),
+  tempIn: document.getElementById('temp-in'),
+  heading: document.getElementById('heading'),
+  humOut: document.getElementById('hum-out'),
+  humIn: document.getElementById('hum-in'),
+  distance: document.getElementById('distance'),
+  lat: document.getElementById('lat'),
+  lng: document.getElementById('lng'),
+  accuracy: document.getElementById('accuracy'),
+  gpsTs: document.getElementById('gps-ts'),
+};
+
+const cameraFeedEl = document.getElementById('camera-feed');
+const cameraPlaceholderEl = document.getElementById('camera-placeholder');
+
+menuButtons.forEach((btn) => {
+  btn.addEventListener('click', () => {
+    menuButtons.forEach((button) => button.classList.remove('active'));
+    panels.forEach((panel) => panel.classList.remove('active'));
+
+    btn.classList.add('active');
+    const target = document.getElementById(btn.dataset.target);
+    if (target) target.classList.add('active');
+  });
+});
+
+function setStatus(type, message) {
+  sensorStatus.className = `status ${type}`;
+  sensorStatus.textContent = message;
 }
 
-function generateDummyData() {
-  const headingDeg = Math.floor(Math.random() * 360);
-  const index = Math.round(headingDeg / 45) % 8;
-
-  return {
-    temperature: {
-      outside: randomRange(5, 18),
-      inside: randomRange(18, 25)
-    },
-    humidity: {
-      outside: randomRange(45, 85),
-      inside: randomRange(35, 65)
-    },
-    heading: {
-      deg: headingDeg,
-      cardinal: directionLabels[index]
-    },
-    distanceCm: randomRange(25, 240, 0),
-    location: {
-      lat: randomRange(47.95, 48.35, 5),
-      lng: randomRange(16.15, 16.55, 5),
-      source: Math.random() > 0.5 ? 'GPS + LoRa' : 'GPS Direct',
-      accuracyM: randomRange(3, 15, 0)
-    }
-  };
+function safeValue(value, digits = 1) {
+  if (typeof value !== 'number' || Number.isNaN(value)) return '--';
+  return value.toFixed(digits);
 }
 
-function setText(id, value) {
-  const el = document.getElementById(id);
-  if (el) el.textContent = value;
+function updateSensorUI(data) {
+  fields.tempOut.textContent = safeValue(data?.temperature?.outside);
+  fields.tempIn.textContent = safeValue(data?.temperature?.inside);
+  fields.humOut.textContent = safeValue(data?.humidity?.outside);
+  fields.humIn.textContent = safeValue(data?.humidity?.inside);
+
+  const heading = data?.heading;
+  fields.heading.textContent = heading?.cardinal
+    ? `${heading.cardinal} (${safeValue(heading.deg, 0)}°)`
+    : '--';
+
+  fields.distance.textContent = safeValue(data?.distanceCm, 0);
+  lastUpdated.textContent = `Letztes Update: ${new Date().toLocaleTimeString('de-DE')}`;
 }
 
-function render() {
-  const data = generateDummyData();
-
-  setText('tempOutside', `${data.temperature.outside} °C`);
-  setText('tempInside', `${data.temperature.inside} °C`);
-  setText('humOutside', `${data.humidity.outside} %`);
-  setText('humInside', `${data.humidity.inside} %`);
-  setText('heading', `${data.heading.deg}° (${data.heading.cardinal})`);
-  setText('distance', `${data.distanceCm} cm`);
-
-  setText('lat', data.location.lat);
-  setText('lng', data.location.lng);
-  setText('source', data.location.source);
-  setText('accuracy', data.location.accuracyM);
+function updateLocationUI(data) {
+  fields.lat.textContent = safeValue(data?.lat, 6);
+  fields.lng.textContent = safeValue(data?.lng, 6);
+  fields.accuracy.textContent = safeValue(data?.accuracyM, 1);
+  fields.gpsTs.textContent = data?.timestamp
+    ? new Date(data.timestamp).toLocaleString('de-DE')
+    : '--';
 }
 
-render();
-setInterval(render, 10000);
+async function fetchJson(url) {
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: { Accept: 'application/json' },
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status} auf ${url}`);
+  }
+
+  return response.json();
+}
+
+async function refreshSensors() {
+  try {
+    const data = await fetchJson(config.sensorUrl);
+    updateSensorUI(data);
+    setStatus('ok', 'Sensordaten empfangen');
+  } catch (error) {
+    setStatus('error', `Keine Sensordaten: ${error.message}`);
+  }
+}
+
+async function refreshLocation() {
+  try {
+    const data = await fetchJson(config.locationUrl);
+    updateLocationUI(data);
+  } catch (error) {
+    fields.gpsTs.textContent = `Fehler: ${error.message}`;
+  }
+}
+
+function setupCameraFeed() {
+  if (!config.cameraFeedUrl) {
+    cameraFeedEl.style.display = 'none';
+    cameraPlaceholderEl.style.display = 'grid';
+    return;
+  }
+
+  cameraFeedEl.src = config.cameraFeedUrl;
+  cameraFeedEl.style.display = 'block';
+  cameraPlaceholderEl.style.display = 'none';
+}
+
+refreshSensors();
+refreshLocation();
+setupCameraFeed();
+
+setInterval(refreshSensors, config.sensorPollMs);
+setInterval(refreshLocation, config.locationPollMs);
