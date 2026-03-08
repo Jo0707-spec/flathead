@@ -1,102 +1,115 @@
 <!doctype html>
 <html lang="de">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Flathead Control Center</title>
-    <link rel="stylesheet" href="style.css" />
-  </head>
-  <body>
-    <header class="hero">
-      <h1>Flathead – Raspberry Monitoring</h1>
-      <p>
-        Startversion mit Dummy-Daten für Node-RED, GPS/LoRa Standort und Live-Kamera
-      </p>
-    </header>
+<head>
+  <meta charset="utf-8" />
+  <title>Flathead Control Center</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <h1>Flathead Control Center</h1>
+    <p>Node-RED Dashboard für Sensorik, Standort und Live-Kamera</p>
+  </header>
 
-    <main class="container">
-      <section class="main-menu">
-        <h2>Main Page</h2>
-        <div class="menu-grid">
-          <a class="menu-card" href="#dashboard">1) Sensor-Daten Dashboard</a>
-          <a class="menu-card" href="#location">2) Aufenthaltsort des Raspberry</a>
-          <a class="menu-card" href="#camera">3) Live Kamera Feed</a>
+  <main class="layout">
+    <nav class="menu" aria-label="Hauptmenü">
+      <button class="menu-btn active" data-target="dashboard">1) Sensor-Daten Dashboard</button>
+      <button class="menu-btn" data-target="location">2) Aufenthaltsort des Raspberrys</button>
+      <button class="menu-btn" data-target="camera">3) Live Kamera Feed</button>
+    </nav>
+
+    <section id="dashboard" class="panel active" aria-labelledby="dashboard-title">
+      <div class="panel-header">
+        <h2 id="dashboard-title">Sensor-Daten Dashboard</h2>
+        <small>Live-Werte via Node-RED</small>
+      </div>
+
+      <div class="grid-cards">
+        <article class="card">
+          <h3>Temperatur</h3>
+          <p>Außen: <strong id="temp-out">--</strong> °C</p>
+          <p>Innen: <strong id="temp-in">--</strong> °C</p>
+        </article>
+
+        <article class="card">
+          <h3>Himmelsrichtung</h3>
+          <p>Richtung: <strong id="heading">--</strong></p>
+        </article>
+
+        <article class="card">
+          <h3>Luftfeuchtigkeit</h3>
+          <p>Außen: <strong id="hum-out">--</strong> %</p>
+          <p>Innen: <strong id="hum-in">--</strong> %</p>
+        </article>
+
+        <article class="card">
+          <h3>Distanz zu Objekten</h3>
+          <p><strong id="distance">--</strong> cm</p>
+          <small>Update alle 10 Sekunden</small>
+        </article>
+      </div>
+
+      <div class="status-row">
+        <span id="sensor-status" class="status neutral">Warte auf Sensordaten …</span>
+        <span id="last-updated">Letztes Update: --</span>
+      </div>
+    </section>
+
+    <section id="location" class="panel" aria-labelledby="location-title">
+      <div class="panel-header">
+        <h2 id="location-title">Aufenthaltsort des Raspberrys</h2>
+        <small>GPS/LoRa Vorschläge für deine Architektur</small>
+      </div>
+
+      <article class="card">
+        <h3>Aktuelle Position</h3>
+        <p>Breitengrad: <strong id="lat">--</strong></p>
+        <p>Längengrad: <strong id="lng">--</strong></p>
+        <p>Genauigkeit: <strong id="accuracy">--</strong> m</p>
+        <p>Zeitstempel: <strong id="gps-ts">--</strong></p>
+      </article>
+
+      <article class="card">
+        <h3>Ideen für Umsetzung</h3>
+        <ul>
+          <li><strong>Direkt in Node-RED:</strong> GPS-Daten vom Raspberry per MQTT/HTTP einsammeln und im Dashboard live anzeigen.</li>
+          <li><strong>LoRa fallback:</strong> Nur Kernwerte (Lat/Lng/Battery/Alarm) per LoRa übertragen, Node-RED dekodiert das Paket.</li>
+          <li><strong>Hybrid:</strong> LoRa für Reichweite + WLAN/LTE für detailreiches Tracking, je nach Verbindung automatisch umschalten.</li>
+          <li><strong>Geo-Fencing:</strong> In Node-RED Trigger setzen (z. B. "außerhalb Zone") und Alarm an Web/Telegram senden.</li>
+        </ul>
+      </article>
+
+      <p class="tip">Tipp: LoRa reicht für Positions-Updates in Intervallen (z. B. 15–60s), Video sollte separat über WLAN/LTE laufen.</p>
+    </section>
+
+    <section id="camera" class="panel" aria-labelledby="camera-title">
+      <div class="panel-header">
+        <h2 id="camera-title">Live Kamera Feed</h2>
+        <small>Streaming-Ansatz über Node-RED + Raspberry Pi Kamera</small>
+      </div>
+
+      <article class="card">
+        <h3>Livestream</h3>
+        <div class="video-shell">
+          <img id="camera-feed" src="" alt="Live Feed der Raspberry Kamera" />
+          <div id="camera-placeholder">Noch kein Stream konfiguriert.</div>
         </div>
-      </section>
+        <p class="hint">Setze in <code>app.js</code> die URL <code>cameraFeedUrl</code> auf deinen MJPEG/HLS Stream.</p>
+      </article>
 
-      <section id="dashboard" class="panel">
-        <h2>Sensor-Daten Dashboard</h2>
-        <p class="muted">Aktuell Demo-Werte – später über Node-RED Endpunkte ersetzbar.</p>
-        <div class="stats-grid">
-          <article class="stat-card">
-            <h3>Temperatur außen</h3>
-            <p id="tempOutside" class="value">-- °C</p>
-          </article>
-          <article class="stat-card">
-            <h3>Temperatur innen</h3>
-            <p id="tempInside" class="value">-- °C</p>
-          </article>
-          <article class="stat-card">
-            <h3>Humidity außen</h3>
-            <p id="humOutside" class="value">-- %</p>
-          </article>
-          <article class="stat-card">
-            <h3>Humidity innen</h3>
-            <p id="humInside" class="value">-- %</p>
-          </article>
-          <article class="stat-card">
-            <h3>Himmelsrichtung</h3>
-            <p id="heading" class="value">--</p>
-          </article>
-          <article class="stat-card accent">
-            <h3>Distanz zu Objekten</h3>
-            <p id="distance" class="value">-- cm</p>
-            <small>Update alle 10 Sekunden</small>
-          </article>
-        </div>
-      </section>
+      <article class="card">
+        <h3>Empfohlene Einbindung</h3>
+        <ul>
+          <li><strong>Einfach:</strong> Raspberry Kamera als MJPEG Stream (z. B. über <code>libcamera-vid</code> + Gateway) und im <code>&lt;img&gt;</code> anzeigen.</li>
+          <li><strong>Node-RED:</strong> Stream-URL als HTTP-In/Proxy in Node-RED bereitstellen, damit alles über einen Server läuft.</li>
+          <li><strong>Sicher:</strong> Authentifizierung (Token/Basic Auth) und optional HTTPS, wenn extern erreichbar.</li>
+          <li><strong>Performance:</strong> Für stabile Live-Ansicht besser HLS/WebRTC statt einzelner JPEG-Snapshots.</li>
+        </ul>
+      </article>
+    </section>
+  </main>
 
-      <section id="location" class="panel">
-        <h2>Aufenthaltsort des Raspberry</h2>
-        <div class="location-grid">
-          <article class="info-card">
-            <h3>Live Standort (Dummy)</h3>
-            <p><strong>Latitude:</strong> <span id="lat">--</span></p>
-            <p><strong>Longitude:</strong> <span id="lng">--</span></p>
-            <p><strong>Quelle:</strong> <span id="source">--</span></p>
-            <p><strong>Genauigkeit:</strong> <span id="accuracy">--</span> m</p>
-          </article>
-          <article class="info-card">
-            <h3>Vorschläge für echte Umsetzung</h3>
-            <ul>
-              <li>GPS-Modul am Raspberry + Node-RED `serial in` Node.</li>
-              <li>LoRa als Fallback: Pico sendet Koordinaten, Raspberry visualisiert sie.</li>
-              <li>Geofence-Alarm in Node-RED (Benachrichtigung bei Bereichs-Verlassen).</li>
-              <li>OpenStreetMap/Leaflet Karte mit aktuellem Marker + Track.</li>
-            </ul>
-          </article>
-        </div>
-      </section>
-
-      <section id="camera" class="panel">
-        <h2>Live Kamera Feed</h2>
-        <div class="camera-wrap">
-          <img
-            src="https://placehold.co/960x540/111827/9ca3af?text=Dummy+Kamera+Feed"
-            alt="Dummy Kamera Feed"
-          />
-          <p class="muted">
-            Idee: Kamera-Stream z. B. über `libcamera-vid` + WebRTC oder MJPEG,
-            eingebunden per Node-RED (UI Template oder HTTP Endpoint).
-          </p>
-        </div>
-      </section>
-    </main>
-
-    <footer>
-      <p>Flathead Starter • Dummy-Daten aktiv • bereit für Node-RED Integration</p>
-    </footer>
-
-    <script src="app.js"></script>
-  </body>
+  <script src="app.js"></script>
+</body>
 </html>
