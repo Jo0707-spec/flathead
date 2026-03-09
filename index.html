@@ -9,8 +9,7 @@
 <body>
   <header class="topbar">
     <h1>Flathead Control Center</h1>
-    <p>Node-RED Dashboard für Sensorik, Standort und Live-Kamera</p>
-  </header>
+     </header>
 
   <main class="layout">
     <nav class="menu" aria-label="Hauptmenü">
@@ -22,7 +21,6 @@
     <section id="dashboard" class="panel active" aria-labelledby="dashboard-title">
       <div class="panel-header">
         <h2 id="dashboard-title">Sensor-Daten Dashboard</h2>
-        <small>Live-Werte via Node-RED</small>
       </div>
 
       <div class="grid-cards">
@@ -70,23 +68,14 @@
         <p>Zeitstempel: <strong id="gps-ts">--</strong></p>
       </article>
 
-      <article class="card">
-        <h3>Ideen für Umsetzung</h3>
-        <ul>
-          <li><strong>Direkt in Node-RED:</strong> GPS-Daten vom Raspberry per MQTT/HTTP einsammeln und im Dashboard live anzeigen.</li>
-          <li><strong>LoRa fallback:</strong> Nur Kernwerte (Lat/Lng/Battery/Alarm) per LoRa übertragen, Node-RED dekodiert das Paket.</li>
-          <li><strong>Hybrid:</strong> LoRa für Reichweite + WLAN/LTE für detailreiches Tracking, je nach Verbindung automatisch umschalten.</li>
-          <li><strong>Geo-Fencing:</strong> In Node-RED Trigger setzen (z. B. "außerhalb Zone") und Alarm an Web/Telegram senden.</li>
-        </ul>
-      </article>
+     
 
-      <p class="tip">Tipp: LoRa reicht für Positions-Updates in Intervallen (z. B. 15–60s), Video sollte separat über WLAN/LTE laufen.</p>
-    </section>
+     </section>
 
     <section id="camera" class="panel" aria-labelledby="camera-title">
       <div class="panel-header">
         <h2 id="camera-title">Live Kamera Feed</h2>
-        <small>Streaming-Ansatz über Node-RED + Raspberry Pi Kamera</small>
+        <small>Streaming-Ansatz über Raspberry Pi Kamera</small>
       </div>
 
       <article class="card">
@@ -98,16 +87,8 @@
         <p class="hint">Setze in <code>app.js</code> die URL <code>cameraFeedUrl</code> auf deinen MJPEG/HLS Stream.</p>
       </article>
 
-      <article class="card">
-        <h3>Empfohlene Einbindung</h3>
-        <ul>
-          <li><strong>Einfach:</strong> Raspberry Kamera als MJPEG Stream (z. B. über <code>libcamera-vid</code> + Gateway) und im <code>&lt;img&gt;</code> anzeigen.</li>
-          <li><strong>Node-RED:</strong> Stream-URL als HTTP-In/Proxy in Node-RED bereitstellen, damit alles über einen Server läuft.</li>
-          <li><strong>Sicher:</strong> Authentifizierung (Token/Basic Auth) und optional HTTPS, wenn extern erreichbar.</li>
-          <li><strong>Performance:</strong> Für stabile Live-Ansicht besser HLS/WebRTC statt einzelner JPEG-Snapshots.</li>
-        </ul>
-      </article>
-    </section>
+      
+        
   </main>
 
   <script src="app.js"></script>
