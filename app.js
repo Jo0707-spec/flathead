@@ -1,7 +1,6 @@
 const config = {
-  // Passe die Endpunkte auf deine Node-RED HTTP-In Nodes an:
-  sensorUrl: '/api/sensors/latest',
-  locationUrl: '/api/location/latest',
+  sensorUrl: 'http://192.168.68.136:5000/api/sensors/latest',
+  locationUrl: 'http://192.168.68.136:5000/api/location/latest',
   cameraFeedUrl: '',
   sensorPollMs: 10000,
   locationPollMs: 15000,
