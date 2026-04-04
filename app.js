@@ -1,3 +1,15 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "DEIN_API_KEY",
+  authDomain: "flathead-d96d6.firebaseapp.com",
+  databaseURL: "https://flathead-d96d6-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "flathead-d96d6"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
 const config = {
   sensorUrl: 'http://192.168.68.136:5000/api/sensors/latest',
   locationUrl: 'http://192.168.68.136:5000/api/location/latest',
@@ -6,6 +18,37 @@ const config = {
   locationPollMs: 15000,
 };
 
+const sensorRef = ref(db, "sensor");
+
+onValue(sensorRef, (snapshot) => {
+  const data = snapshot.val();
+
+  if (!data) return;
+
+  updateSensorUI({
+    temperature: {
+      outside: data.temperature,
+      inside: data.temperature
+    },
+    humidity: {
+      outside: data.humidity,
+      inside: data.humidity
+    },
+    distanceCm: data.distance || 0,
+    heading: null
+  });
+
+  setStatus("ok", "LIVE Daten von Firebase");
+});
+const locationRef = ref(db, "location");
+
+onValue(locationRef, (snapshot) => {
+  const data = snapshot.val();
+
+  if (!data) return;
+
+  updateLocationUI(data);
+});
 const menuButtons = document.querySelectorAll('.menu-btn');
 const panels = document.querySelectorAll('.panel');
 
@@ -118,9 +161,6 @@ function setupCameraFeed() {
   cameraPlaceholderEl.style.display = 'none';
 }
 
-refreshSensors();
-refreshLocation();
-setupCameraFeed();
 
 setInterval(refreshSensors, config.sensorPollMs);
 setInterval(refreshLocation, config.locationPollMs);
