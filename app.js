@@ -13,7 +13,7 @@ const db = getDatabase(app);
 const config = {
   sensorUrl: 'http://192.168.68.136:5000/api/sensors/latest',
   locationUrl: 'http://192.168.68.136:5000/api/location/latest',
-  cameraFeedUrl: '',
+  cameraFeedUrl: 'http://192.168.68.136:5000/video'
   sensorPollMs: 10000,
   locationPollMs: 15000,
 };
