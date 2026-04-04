@@ -9,18 +9,18 @@
 <body>
   <header class="topbar">
     <h1>Flathead Control Center</h1>
-     </header>
+  </header>
 
   <main class="layout">
-    <nav class="menu" aria-label="Hauptmenü">
+    <nav class="menu">
       <button class="menu-btn active" data-target="dashboard">1) Sensor-Daten Dashboard</button>
       <button class="menu-btn" data-target="location">2) Aufenthaltsort des Raspberrys</button>
       <button class="menu-btn" data-target="camera">3) Live Kamera Feed</button>
     </nav>
 
-    <section id="dashboard" class="panel active" aria-labelledby="dashboard-title">
+    <section id="dashboard" class="panel active">
       <div class="panel-header">
-        <h2 id="dashboard-title">Sensor-Daten Dashboard</h2>
+        <h2>Sensor-Daten Dashboard</h2>
       </div>
 
       <div class="grid-cards">
@@ -42,54 +42,75 @@
         </article>
 
         <article class="card">
-          <h3>Distanz zu Objekten</h3>
+          <h3>Distanz</h3>
           <p><strong id="distance">--</strong> cm</p>
-          <small>Update alle 10 Sekunden</small>
         </article>
       </div>
 
       <div class="status-row">
-        <span id="sensor-status" class="status neutral">Warte auf Sensordaten …</span>
-        <span id="last-updated">Letztes Update: --</span>
+        <span id="sensor-status">Warte auf Sensordaten …</span>
+        <span id="last-updated">--</span>
       </div>
     </section>
 
-    <section id="location" class="panel" aria-labelledby="location-title">
+    <section id="location" class="panel">
       <div class="panel-header">
-        <h2 id="location-title">Aufenthaltsort des Raspberrys</h2>
+        <h2>Standort</h2>
       </div>
 
       <article class="card">
-        <h3>Aktuelle Position</h3>
-        <p>Breitengrad: <strong id="lat">--</strong></p>
-        <p>Längengrad: <strong id="lng">--</strong></p>
-        <p>Genauigkeit: <strong id="accuracy">--</strong> m</p>
-        <p>Zeitstempel: <strong id="gps-ts">--</strong></p>
+        <p>Lat: <strong id="lat">--</strong></p>
+        <p>Lng: <strong id="lng">--</strong></p>
       </article>
+    </section>
 
-     
-
-     </section>
-
-    <section id="camera" class="panel" aria-labelledby="camera-title">
+    <section id="camera" class="panel">
       <div class="panel-header">
-        <h2 id="camera-title">Live Kamera Feed</h2>
-        <small>Streaming-Ansatz über Raspberry Pi Kamera</small>
+        <h2>Kamera</h2>
       </div>
 
       <article class="card">
-        <h3>Livestream</h3>
-        <div class="video-shell">
-          <img id="camera-feed" src="" alt="Live Feed der Raspberry Kamera" />
-          <div id="camera-placeholder">Noch kein Stream konfiguriert.</div>
-        </div>
-        <p class="hint">Setze in <code>app.js</code> die URL <code>cameraFeedUrl</code> auf deinen MJPEG/HLS Stream.</p>
+        <img id="camera-feed" src="" />
       </article>
-
-      
-        
+    </section>
   </main>
 
-  <script src="app.js"></script>
+  <!-- 🔥 FIREBASE SCRIPT -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDcjgVtCEZGSOepoX4c5mBsZ0UtbjvTEpU",
+      authDomain: "flathead-d96d6.firebaseapp.com",
+      databaseURL: "https://flathead-d96d6-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "flathead-d96d6"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    const sensorRef = ref(db, 'sensor');
+
+    onValue(sensorRef, (snapshot) => {
+      const data = snapshot.val();
+
+      if (!data) return;
+
+      // 🔥 Werte einsetzen
+      document.getElementById("temp-out").innerText = data.temperature;
+      document.getElementById("temp-in").innerText = data.temperature;
+
+      document.getElementById("hum-out").innerText = data.humidity;
+      document.getElementById("hum-in").innerText = data.humidity;
+
+      document.getElementById("distance").innerText = data.distance || "--";
+
+      // Status
+      document.getElementById("sensor-status").innerText = "LIVE DATEN";
+      document.getElementById("last-updated").innerText = new Date().toLocaleTimeString();
+    });
+  </script>
+
 </body>
 </html>
