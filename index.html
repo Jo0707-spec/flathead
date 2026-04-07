@@ -75,43 +75,6 @@
       </article>
     </section>
   </main>
-
-  <!-- 🔥 FIREBASE SCRIPT -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
-    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyDcjgVtCEZGSOepoX4c5mBsZ0UtbjvTEpU",
-      authDomain: "flathead-d96d6.firebaseapp.com",
-      databaseURL: "https://flathead-d96d6-default-rtdb.europe-west1.firebasedatabase.app",
-      projectId: "flathead-d96d6"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-
-    const sensorRef = ref(db, 'sensor');
-
-    onValue(sensorRef, (snapshot) => {
-      const data = snapshot.val();
-
-      if (!data) return;
-
-      // 🔥 Werte einsetzen
-      document.getElementById("temp-out").innerText = data.temperature;
-      document.getElementById("temp-in").innerText = data.temperature;
-
-      document.getElementById("hum-out").innerText = data.humidity;
-      document.getElementById("hum-in").innerText = data.humidity;
-
-      document.getElementById("distance").innerText = data.distance || "--";
-
-      // Status
-      document.getElementById("sensor-status").innerText = "LIVE DATEN";
-      document.getElementById("last-updated").innerText = new Date().toLocaleTimeString();
-    });
-  </script>
  <script type="module" src="app.js"></script>
 </body>
 </html>
