@@ -2,7 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebas
 import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js";
 
 const firebaseConfig = {
-  apiKey: "DEIN_API_KEY",
+  apiKey: "AIzaSyDcjgVtCEZGSOepoX4c5mBsZ0UtbjvTEpU",
   authDomain: "flathead-d96d6.firebaseapp.com",
   databaseURL: "https://flathead-d96d6-default-rtdb.europe-west1.firebasedatabase.app",
   projectId: "flathead-d96d6"
