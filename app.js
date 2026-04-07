@@ -13,7 +13,7 @@ const db = getDatabase(app);
 const config = {
   sensorUrl: 'http://192.168.68.136:5000/api/sensors/latest',
   locationUrl: 'http://192.168.68.136:5000/api/location/latest',
-  cameraFeedUrl: 'http://192.168.68.136:5000/video',
+  cameraFeedUrl: 'https://unretaliating-armani-offensively.ngrok-free.dev/video',
   sensorPollMs: 10000,
   locationPollMs: 15000,
 };
