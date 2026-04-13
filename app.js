@@ -1,6 +1,7 @@
-document.addEventListener("DOMContentLoaded", () => {
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
 import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js";
+
+document.addEventListener("DOMContentLoaded", () => {
 
 const firebaseConfig = {
   apiKey: "AIzaSyDcjgVtCEZGSOepoX4c5mBsZ0UtbjvTEpU",
@@ -109,12 +110,14 @@ function updateSensorUI(data) {
 }
 
 function updateLocationUI(data) {
-  fields.lat.textContent = safeValue(data?.lat, 6);
-  fields.lng.textContent = safeValue(data?.lng, 6);
-  fields.accuracy.textContent = safeValue(data?.accuracyM, 1);
-  fields.gpsTs.textContent = data?.timestamp
-    ? new Date(data.timestamp).toLocaleString('de-DE')
-    : '--';
+  if (fields.lat) fields.lat.textContent = safeValue(data?.lat, 6);
+  if (fields.lng) fields.lng.textContent = safeValue(data?.lng, 6);
+  if (fields.accuracy) fields.accuracy.textContent = safeValue(data?.accuracyM, 1);
+  if (fields.gpsTs) {
+    fields.gpsTs.textContent = data?.timestamp
+      ? new Date(data.timestamp).toLocaleString('de-DE')
+      : '--';
+  }
 }
 
 async function fetchJson(url) {
@@ -146,7 +149,9 @@ async function refreshLocation() {
     const data = await fetchJson(config.locationUrl);
     updateLocationUI(data);
   } catch (error) {
-    fields.gpsTs.textContent = `Fehler: ${error.message}`;
+    if (fields.gpsTs) {
+      fields.gpsTs.textContent = `Fehler: ${error.message}`;
+    }
   }
 }
 
