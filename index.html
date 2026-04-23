@@ -5,6 +5,12 @@
   <meta charset="utf-8" />
   <title>Flathead Control Center</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -63,6 +69,43 @@
         <p>Lat: <strong id="lat">--</strong></p>
         <p>Lng: <strong id="lng">--</strong></p>
       </article>
+
+      <article class="card">
+        <h3>Karte & Wegpunkte</h3>
+        <div id="map" class="map"></div>
+        <form id="waypoint-form" class="coord-form">
+          <label>
+            Wegpunkt Name
+            <input id="waypoint-name" type="text" placeholder="z. B. Startpunkt" />
+          </label>
+          <label>
+            Latitude
+            <input id="waypoint-lat" type="number" step="0.000001" required />
+          </label>
+          <label>
+            Longitude
+            <input id="waypoint-lng" type="number" step="0.000001" required />
+          </label>
+          <button type="submit">Wegpunkt speichern</button>
+        </form>
+        <ul id="waypoint-list" class="waypoint-list"></ul>
+      </article>
+
+      <article class="card">
+        <h3>Manuelle ESP32 Zielkoordinaten (X / Z)</h3>
+        <form id="esp-form" class="coord-form">
+          <label>
+            X-Koordinate
+            <input id="esp-x" type="number" step="0.01" required />
+          </label>
+          <label>
+            Z-Koordinate
+            <input id="esp-z" type="number" step="0.01" required />
+          </label>
+          <button type="submit">An ESP32 senden</button>
+        </form>
+        <p id="esp-status" class="hint">Noch keine Koordinaten gesendet.</p>
+      </article>
     </section>
 
     <section id="camera" class="panel">
@@ -77,6 +120,11 @@
       </article>
     </section>
   </main>
+<script
+  src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+  integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+  crossorigin=""
+></script>
  <script type="module">
   import "./app.js";
 </script>
