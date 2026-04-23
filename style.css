@@ -93,7 +93,8 @@ body {
   margin-bottom: 0.9rem;
 }
 
-.panel-header h2 {
+.panel-header h2,
+.panel-header h3 {
   margin: 0;
   font-size: 1.2rem;
 }
@@ -157,6 +158,103 @@ body {
 .tip,
 .hint {
   color: var(--muted);
+}
+
+.coord-form {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.coord-form label {
+  display: grid;
+  gap: 0.2rem;
+  font-size: 0.92rem;
+}
+
+.coord-form input {
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.6rem;
+}
+
+button {
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+  border-radius: 0.5rem;
+  padding: 0.55rem 0.8rem;
+  cursor: pointer;
+}
+
+button.ghost {
+  background: transparent;
+  color: var(--text);
+  border-color: var(--border);
+}
+
+.map-card {
+  margin-top: 0.9rem;
+}
+
+.coordinate-map {
+  position: relative;
+  width: 100%;
+  min-height: 320px;
+  border: 1px dashed var(--border);
+  border-radius: 0.7rem;
+  background-image:
+    linear-gradient(to right, rgba(20, 83, 45, 0.08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(20, 83, 45, 0.08) 1px, transparent 1px);
+  background-size: 32px 32px;
+  overflow: hidden;
+}
+
+.coordinate-map::before,
+.coordinate-map::after {
+  content: "";
+  position: absolute;
+  background: rgba(20, 83, 45, 0.4);
+}
+
+.coordinate-map::before {
+  left: 50%;
+  top: 0;
+  width: 1px;
+  height: 100%;
+}
+
+.coordinate-map::after {
+  top: 50%;
+  left: 0;
+  height: 1px;
+  width: 100%;
+}
+
+.map-point {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: #0ea5e9;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.3);
+  transform: translate(-50%, -50%);
+}
+
+.map-coords-row,
+.waypoint-actions {
+  margin-top: 0.7rem;
+  display: flex;
+  gap: 0.8rem;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.waypoint-list {
+  margin: 0.7rem 0 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 0.3rem;
 }
 
 .video-shell {

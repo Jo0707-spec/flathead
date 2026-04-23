@@ -56,12 +56,52 @@
 
     <section id="location" class="panel">
       <div class="panel-header">
-        <h2>Standort</h2>
+        <h2>Standort & Wegpunkte</h2>
       </div>
 
-      <article class="card">
-        <p>Lat: <strong id="lat">--</strong></p>
-        <p>Lng: <strong id="lng">--</strong></p>
+      <div class="grid-cards">
+        <article class="card">
+          <h3>GPS</h3>
+          <p>Lat: <strong id="lat">--</strong></p>
+          <p>Lng: <strong id="lng">--</strong></p>
+        </article>
+
+        <article class="card">
+          <h3>Manuelle X/Z Steuerung (ESP32)</h3>
+          <form id="manual-coord-form" class="coord-form">
+            <label>
+              X
+              <input id="manual-x" type="number" step="0.1" required />
+            </label>
+            <label>
+              Z
+              <input id="manual-z" type="number" step="0.1" required />
+            </label>
+            <button type="submit">An ESP32 senden</button>
+          </form>
+          <p id="manual-send-status" class="hint">Bereit.</p>
+        </article>
+      </div>
+
+      <article class="card map-card">
+        <div class="panel-header">
+          <h3>Wegpunkte Karte (X/Z)</h3>
+          <small>Klick in die Karte, um Wegpunkte zu setzen.</small>
+        </div>
+
+        <div id="coordinate-map" class="coordinate-map" aria-label="Karte für Wegpunkte"></div>
+        <div class="map-coords-row">
+          <span>Letzter Punkt: <strong id="map-last-point">--</strong></span>
+          <span>Wegpunkte: <strong id="waypoint-count">0</strong></span>
+        </div>
+
+        <div class="waypoint-actions">
+          <button id="send-waypoints" type="button">Wegpunkte an ESP32 senden</button>
+          <button id="clear-waypoints" type="button" class="ghost">Wegpunkte löschen</button>
+        </div>
+
+        <ul id="waypoint-list" class="waypoint-list"></ul>
+        <p id="waypoint-status" class="hint">Noch keine Wegpunkte gesetzt.</p>
       </article>
     </section>
 
