@@ -1,3 +1,18 @@
+async function sendWaypoint() {
+    const x = document.getElementById("x").value;
+    const y = document.getElementById("y").value;
+
+    await fetch("http://ESP_IP/waypoint", {
+        method: "POST",
+        body: JSON.stringify({
+            x: x,
+            y: y
+        })
+    });
+
+    alert("Gesendet!");
+}
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
 import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js";
 
