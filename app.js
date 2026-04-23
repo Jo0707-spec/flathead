@@ -41,14 +41,12 @@ onValue(sensorRef, (snapshot) => {
     heading: null
   });
 
-  setStatus("ok", "LIVE Daten von Firebase");
-});
-const locationRef = ref(db, "location");
+  const locationRef = ref(db, "location");
 
-onValue(locationRef, (snapshot) => {
-  const data = snapshot.val();
+  onValue(locationRef, (snapshot) => {
+    const data = snapshot.val();
 
-  if (!data) return;
+    if (!data) return;
 
   updateLocationUI(data);
 });
@@ -100,7 +98,6 @@ menuButtons.forEach((btn) => {
     const target = document.getElementById(btn.dataset.target);
     if (target) target.classList.add('active');
   });
-});
 
 function setStatus(type, message) {
   sensorStatus.className = `status ${type}`;
@@ -138,6 +135,9 @@ function updateLocationUI(data) {
     fields.gpsTs.textContent = data?.timestamp
       ? new Date(data.timestamp).toLocaleString('de-DE')
       : '--';
+
+    fields.distance.textContent = safeValue(data?.distanceCm, 0);
+    lastUpdated.textContent = `Letztes Update: ${new Date().toLocaleTimeString('de-DE')}`;
   }
 
   if (typeof lat === 'number' && typeof lng === 'number') {
@@ -145,52 +145,185 @@ function updateLocationUI(data) {
   }
 }
 
-async function fetchJson(url) {
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: { Accept: 'application/json' },
-    cache: 'no-store',
-  });
-
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status} auf ${url}`);
-  }
-
-  return response.json();
-}
-
-async function refreshSensors() {
-  try {
-    const data = await fetchJson(config.sensorUrl);
-    updateSensorUI(data);
-    setStatus('ok', 'Sensordaten empfangen');
-  } catch (error) {
-    setStatus('error', `Keine Sensordaten: ${error.message}`);
-  }
-}
-
-async function refreshLocation() {
-  try {
-    const data = await fetchJson(config.locationUrl);
-    updateLocationUI(data);
-  } catch (error) {
+  function updateLocationUI(data) {
+    if (fields.lat) fields.lat.textContent = safeValue(data?.lat, 6);
+    if (fields.lng) fields.lng.textContent = safeValue(data?.lng, 6);
+    if (fields.accuracy) fields.accuracy.textContent = safeValue(data?.accuracyM, 1);
     if (fields.gpsTs) {
-      fields.gpsTs.textContent = `Fehler: ${error.message}`;
+      fields.gpsTs.textContent = data?.timestamp
+        ? new Date(data.timestamp).toLocaleString('de-DE')
+        : '--';
     }
   }
-}
 
-function setupCameraFeed() {
-  if (!config.cameraFeedUrl) {
-    cameraFeedEl.style.display = 'none';
-    cameraPlaceholderEl.style.display = 'grid';
-    return;
+  async function fetchJson(url) {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+      cache: 'no-store',
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status} auf ${url}`);
+    }
+
+    return response.json();
   }
 
-  cameraFeedEl.src = config.cameraFeedUrl;
-  cameraFeedEl.style.display = 'block';
-  cameraPlaceholderEl.style.display = 'none';
-}
+  async function postJson(url, payload) {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    return response;
+  }
+
+  function renderWaypoints() {
+    waypointCount.textContent = String(waypoints.length);
+
+    waypointList.innerHTML = '';
+    waypoints.forEach((point, index) => {
+      const li = document.createElement('li');
+      li.textContent = `#${index + 1}: X=${point.x.toFixed(1)}, Z=${point.z.toFixed(1)}`;
+      waypointList.append(li);
+    });
+
+    waypointStatus.textContent = waypoints.length
+      ? `${waypoints.length} Wegpunkt(e) bereit.`
+      : 'Noch keine Wegpunkte gesetzt.';
+  }
+
+  function appendWaypointToMap(point) {
+    const marker = document.createElement('div');
+    marker.className = 'map-point';
+
+    const { width, height } = coordinateMap.getBoundingClientRect();
+    const normalizedX = (point.x + config.coordinateMapRange) / (2 * config.coordinateMapRange);
+    const normalizedZ = 1 - ((point.z + config.coordinateMapRange) / (2 * config.coordinateMapRange));
+
+    marker.style.left = `${Math.max(0, Math.min(1, normalizedX)) * width}px`;
+    marker.style.top = `${Math.max(0, Math.min(1, normalizedZ)) * height}px`;
+    marker.title = `X=${point.x.toFixed(1)}, Z=${point.z.toFixed(1)}`;
+
+    coordinateMap.append(marker);
+  }
+
+  function clearMapMarkers() {
+    coordinateMap.querySelectorAll('.map-point').forEach((node) => node.remove());
+  }
+
+  function setupCoordinateMap() {
+    coordinateMap.addEventListener('click', (event) => {
+      const rect = coordinateMap.getBoundingClientRect();
+      const relativeX = (event.clientX - rect.left) / rect.width;
+      const relativeZ = (event.clientY - rect.top) / rect.height;
+
+      const x = ((relativeX * 2) - 1) * config.coordinateMapRange;
+      const z = (1 - (relativeZ * 2)) * config.coordinateMapRange;
+
+      const point = {
+        x: Number(x.toFixed(1)),
+        z: Number(z.toFixed(1)),
+      };
+
+      waypoints.push(point);
+      appendWaypointToMap(point);
+      mapLastPoint.textContent = `X=${point.x.toFixed(1)}, Z=${point.z.toFixed(1)}`;
+      renderWaypoints();
+    });
+
+    clearWaypointsBtn.addEventListener('click', () => {
+      waypoints.length = 0;
+      clearMapMarkers();
+      mapLastPoint.textContent = '--';
+      renderWaypoints();
+    });
+
+    sendWaypointsBtn.addEventListener('click', async () => {
+      if (!waypoints.length) {
+        waypointStatus.textContent = 'Bitte zuerst Wegpunkte setzen.';
+        return;
+      }
+
+      waypointStatus.textContent = 'Sende Wegpunkte an ESP32 ...';
+
+      try {
+        await postJson(config.esp32ControlUrl, {
+          type: 'waypoints',
+          waypoints,
+          createdAt: Date.now(),
+        });
+        waypointStatus.textContent = `${waypoints.length} Wegpunkt(e) erfolgreich gesendet.`;
+      } catch (error) {
+        waypointStatus.textContent = `Fehler beim Senden: ${error.message}`;
+      }
+    });
+  }
+
+  function setupManualCoordinateForm() {
+    coordForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      const x = Number(manualXInput.value);
+      const z = Number(manualZInput.value);
+
+      if (!Number.isFinite(x) || !Number.isFinite(z)) {
+        manualSendStatus.textContent = 'Bitte gültige Zahlen für X und Z eingeben.';
+        return;
+      }
+
+      manualSendStatus.textContent = 'Sende Koordinaten an ESP32 ...';
+
+      try {
+        await postJson(config.esp32ControlUrl, {
+          type: 'single-coordinate',
+          x,
+          z,
+          createdAt: Date.now(),
+        });
+        manualSendStatus.textContent = `Gesendet: X=${x.toFixed(1)}, Z=${z.toFixed(1)}`;
+      } catch (error) {
+        manualSendStatus.textContent = `Senden fehlgeschlagen: ${error.message}`;
+      }
+    });
+  }
+
+  async function refreshSensors() {
+    try {
+      const data = await fetchJson(config.sensorUrl);
+      updateSensorUI(data);
+      setStatus('ok', 'Sensordaten empfangen');
+    } catch (error) {
+      setStatus('error', `Keine Sensordaten: ${error.message}`);
+    }
+  }
+
+  async function refreshLocation() {
+    try {
+      const data = await fetchJson(config.locationUrl);
+      updateLocationUI(data);
+    } catch (error) {
+      if (fields.gpsTs) {
+        fields.gpsTs.textContent = `Fehler: ${error.message}`;
+      }
+    }
+  }
+
+  function setupCameraFeed() {
+    if (!config.cameraFeedUrl) {
+      cameraFeedEl.style.display = 'none';
+      cameraPlaceholderEl.style.display = 'grid';
+      return;
+    }
 
 function initMap() {
   const mapElement = document.getElementById('map');
@@ -308,12 +441,14 @@ function setupEspForm() {
 }
 
 
-setInterval(refreshSensors, config.sensorPollMs);
-setInterval(refreshLocation, config.locationPollMs);
+  setupCoordinateMap();
+  setupManualCoordinateForm();
+  renderWaypoints();
 
 setupCameraFeed();
 initMap();
 setupWaypointForm();
 setupEspForm();
 
+  setupCameraFeed();
 });
