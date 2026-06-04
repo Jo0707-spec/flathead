@@ -10,7 +10,7 @@ const firebaseConfig = {
 
 const config = {
   espCommandUrl: "http://192.168.68.136:5000/api/esp32/target",
-  cameraFeedUrl: "https://unretaliating-armani-offensively.ngrok-free.dev/video",
+  cameraFeedUrl: "https://unretaliating-armani-offensively.ngrok-free.dev/video_feed",
 };
 
 const app = initializeApp(firebaseConfig);
