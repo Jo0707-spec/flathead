@@ -13,9 +13,7 @@ Die Startseite hat drei Tabs:
    - Distanz zu Objekten
 2. **Aufenthaltsort des Raspberrys**
    - GPS-Daten
-   - Karte
-   - Wegpunkte
-   - X/Z-Zielkoordinaten für den ESP32
+   - Manuelle X/Z-Zielkoordinaten für den ESP32
 3. **Live Kamera Feed**
    - MJPEG/Video-Stream über eine konfigurierbare URL
 
@@ -53,24 +51,13 @@ Zielkoordinaten werden per `POST` an die URL in `app.js` gesendet:
 espCommandUrl: "http://192.168.68.136:5000/api/esp32/target"
 ```
 
-Für einen einzelnen Zielpunkt wird gesendet:
+Für einen Zielpunkt wird gesendet:
 
 ```json
 {
+  "type": "single-coordinate",
   "x": 12.5,
   "z": 8.0,
-  "timestamp": 1710000000000
-}
-```
-
-Für mehrere Wegpunkte wird gesendet:
-
-```json
-{
-  "type": "waypoints",
-  "waypoints": [
-    { "x": 12.5, "z": 8.0 }
-  ],
   "createdAt": 1710000000000
 }
 ```
@@ -93,4 +80,4 @@ http://localhost:8080
 
 - `index.html`: Struktur der Oberfläche und Tabs
 - `style.css`: Layout und Design
-- `app.js`: Tab-Wechsel, Firebase-Daten, Karte, Kamera und ESP32-Kommandos
+- `app.js`: Tab-Wechsel, Firebase-Daten, Kamera und ESP32-Kommandos
