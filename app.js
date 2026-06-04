@@ -11,7 +11,6 @@ const firebaseConfig = {
 const config = {
   espCommandUrl: "http://192.168.68.136:5000/api/esp32/target",
   cameraFeedUrl: "https://unretaliating-armani-offensively.ngrok-free.dev/video",
-  coordinateMapRange: 100,
 };
 
 const app = initializeApp(firebaseConfig);
@@ -37,35 +36,19 @@ document.addEventListener("DOMContentLoaded", () => {
     lng: document.getElementById("lng"),
   };
 
-  let map = null;
-  let liveLocationMarker = null;
-  const waypointState = {
-    items: [],
-    markerLayer: null,
-  };
-
   setupTabs(menuButtons, panels);
   setupCameraFeed(cameraFeedEl, cameraPlaceholderEl);
-  initMap();
-  setupGpsWaypointForm();
-  setupEspForm();
-  setupCoordinateMap();
   setupManualCoordinateForm();
   listenToFirebase();
 
   function setupTabs(buttons, panelElements) {
     buttons.forEach((button) => {
       button.addEventListener("click", () => {
-        const targetId = button.dataset.target;
-        const targetPanel = document.getElementById(targetId);
+        const targetPanel = document.getElementById(button.dataset.target);
         if (!targetPanel) return;
 
         buttons.forEach((item) => item.classList.toggle("active", item === button));
         panelElements.forEach((panel) => panel.classList.toggle("active", panel === targetPanel));
-
-        if (targetId === "location" && map) {
-          setTimeout(() => map.invalidateSize(), 0);
-        }
       });
     });
   }
@@ -125,15 +108,8 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function updateLocationUI(data) {
-    const lat = Number(data?.lat);
-    const lng = Number(data?.lng);
-
-    fields.lat.textContent = safeValue(lat, 6);
-    fields.lng.textContent = safeValue(lng, 6);
-
-    if (Number.isFinite(lat) && Number.isFinite(lng)) {
-      updateMapLocation(lat, lng);
-    }
+    fields.lat.textContent = safeValue(data?.lat, 6);
+    fields.lng.textContent = safeValue(data?.lng, 6);
   }
 
   async function postJson(url, payload) {
@@ -165,202 +141,6 @@ document.addEventListener("DOMContentLoaded", () => {
     feedEl.src = config.cameraFeedUrl;
     feedEl.style.display = "block";
     placeholderEl.style.display = "none";
-  }
-
-  function initMap() {
-    const mapElement = document.getElementById("map");
-    if (!mapElement || typeof window.L === "undefined") return;
-
-    map = window.L.map(mapElement).setView([48.2082, 16.3738], 13);
-    window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: "&copy; OpenStreetMap-Mitwirkende",
-    }).addTo(map);
-
-    waypointState.markerLayer = window.L.layerGroup().addTo(map);
-  }
-
-  function updateMapLocation(lat, lng) {
-    if (!map || typeof window.L === "undefined") return;
-
-    const coords = [lat, lng];
-    if (!liveLocationMarker) {
-      liveLocationMarker = window.L.marker(coords).addTo(map).bindPopup("Aktuelle Position");
-    } else {
-      liveLocationMarker.setLatLng(coords);
-    }
-
-    map.setView(coords, 16);
-  }
-
-  function setupGpsWaypointForm() {
-    const waypointForm = document.getElementById("waypoint-form");
-    const waypointNameInput = document.getElementById("waypoint-name");
-    const waypointLatInput = document.getElementById("waypoint-lat");
-    const waypointLngInput = document.getElementById("waypoint-lng");
-    const waypointList = document.getElementById("waypoint-list");
-
-    if (!waypointForm || !waypointList) return;
-
-    waypointForm.addEventListener("submit", (event) => {
-      event.preventDefault();
-
-      const lat = Number.parseFloat(waypointLatInput.value);
-      const lng = Number.parseFloat(waypointLngInput.value);
-      const name = waypointNameInput.value.trim() || `Wegpunkt ${waypointState.items.length + 1}`;
-
-      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
-
-      waypointState.items.push({ name, lat, lng });
-      renderGpsWaypointList(waypointList);
-      waypointForm.reset();
-    });
-
-    waypointList.addEventListener("click", (event) => {
-      const button = event.target.closest("button[data-waypoint-index]");
-      if (!button) return;
-
-      const waypointIndex = Number.parseInt(button.dataset.waypointIndex, 10);
-      waypointState.items = waypointState.items.filter((_, index) => index !== waypointIndex);
-      renderGpsWaypointList(waypointList);
-    });
-  }
-
-  function renderGpsWaypointList(waypointList) {
-    if (!waypointList || !waypointState.markerLayer || typeof window.L === "undefined") return;
-
-    waypointList.innerHTML = "";
-    waypointState.markerLayer.clearLayers();
-
-    waypointState.items.forEach((waypoint, index) => {
-      const item = document.createElement("li");
-      item.className = "waypoint-item";
-      item.innerHTML = `
-        <span><strong>${waypoint.name}</strong> (${waypoint.lat.toFixed(6)}, ${waypoint.lng.toFixed(6)})</span>
-        <button type="button" data-waypoint-index="${index}">Löschen</button>
-      `;
-      waypointList.appendChild(item);
-
-      const marker = window.L.marker([waypoint.lat, waypoint.lng]).addTo(waypointState.markerLayer);
-      marker.bindPopup(waypoint.name);
-    });
-  }
-
-  function setupEspForm() {
-    const espForm = document.getElementById("esp-form");
-    const espXInput = document.getElementById("esp-x");
-    const espZInput = document.getElementById("esp-z");
-    const espStatus = document.getElementById("esp-status");
-
-    if (!espForm || !espStatus) return;
-
-    espForm.addEventListener("submit", async (event) => {
-      event.preventDefault();
-
-      const x = Number.parseFloat(espXInput.value);
-      const z = Number.parseFloat(espZInput.value);
-
-      if (!Number.isFinite(x) || !Number.isFinite(z)) {
-        espStatus.textContent = "Bitte gültige Zahlen für X und Z eingeben.";
-        return;
-      }
-
-      espStatus.textContent = "Sende an ESP32...";
-
-      try {
-        await postJson(config.espCommandUrl, { x, z, timestamp: Date.now() });
-        espStatus.textContent = `Gesendet: X=${x.toFixed(2)}, Z=${z.toFixed(2)} (${new Date().toLocaleTimeString("de-DE")})`;
-        espForm.reset();
-      } catch (error) {
-        espStatus.textContent = `Senden fehlgeschlagen: ${error.message}`;
-      }
-    });
-  }
-
-  function setupCoordinateMap() {
-    const coordinateMap = document.getElementById("coordinate-map");
-    const mapLastPoint = document.getElementById("map-last-point");
-    const waypointCount = document.getElementById("waypoint-count");
-    const waypointList = document.getElementById("coordinate-waypoint-list");
-    const waypointStatus = document.getElementById("waypoint-status");
-    const sendWaypointsBtn = document.getElementById("send-waypoints");
-    const clearWaypointsBtn = document.getElementById("clear-waypoints");
-
-    if (!coordinateMap || !waypointCount || !waypointList || !waypointStatus) return;
-
-    const waypoints = [];
-
-    coordinateMap.addEventListener("click", (event) => {
-      const rect = coordinateMap.getBoundingClientRect();
-      const relativeX = (event.clientX - rect.left) / rect.width;
-      const relativeZ = (event.clientY - rect.top) / rect.height;
-
-      const x = ((relativeX * 2) - 1) * config.coordinateMapRange;
-      const z = (1 - relativeZ * 2) * config.coordinateMapRange;
-      const point = { x: Number(x.toFixed(1)), z: Number(z.toFixed(1)) };
-
-      waypoints.push(point);
-      appendCoordinateMarker(coordinateMap, point);
-      mapLastPoint.textContent = `X=${point.x.toFixed(1)}, Z=${point.z.toFixed(1)}`;
-      renderCoordinateWaypoints(waypoints, waypointCount, waypointList, waypointStatus);
-    });
-
-    clearWaypointsBtn?.addEventListener("click", () => {
-      waypoints.length = 0;
-      coordinateMap.querySelectorAll(".map-point").forEach((node) => node.remove());
-      mapLastPoint.textContent = "--";
-      renderCoordinateWaypoints(waypoints, waypointCount, waypointList, waypointStatus);
-    });
-
-    sendWaypointsBtn?.addEventListener("click", async () => {
-      if (!waypoints.length) {
-        waypointStatus.textContent = "Bitte zuerst Wegpunkte setzen.";
-        return;
-      }
-
-      waypointStatus.textContent = "Sende Wegpunkte an ESP32 ...";
-
-      try {
-        await postJson(config.espCommandUrl, {
-          type: "waypoints",
-          waypoints,
-          createdAt: Date.now(),
-        });
-        waypointStatus.textContent = `${waypoints.length} Wegpunkt(e) erfolgreich gesendet.`;
-      } catch (error) {
-        waypointStatus.textContent = `Fehler beim Senden: ${error.message}`;
-      }
-    });
-
-    renderCoordinateWaypoints(waypoints, waypointCount, waypointList, waypointStatus);
-  }
-
-  function appendCoordinateMarker(coordinateMap, point) {
-    const marker = document.createElement("div");
-    marker.className = "map-point";
-
-    const normalizedX = (point.x + config.coordinateMapRange) / (2 * config.coordinateMapRange);
-    const normalizedZ = 1 - (point.z + config.coordinateMapRange) / (2 * config.coordinateMapRange);
-
-    marker.style.left = `${Math.max(0, Math.min(1, normalizedX)) * 100}%`;
-    marker.style.top = `${Math.max(0, Math.min(1, normalizedZ)) * 100}%`;
-    marker.title = `X=${point.x.toFixed(1)}, Z=${point.z.toFixed(1)}`;
-
-    coordinateMap.append(marker);
-  }
-
-  function renderCoordinateWaypoints(waypoints, waypointCount, waypointList, waypointStatus) {
-    waypointCount.textContent = String(waypoints.length);
-    waypointList.innerHTML = "";
-
-    waypoints.forEach((point, index) => {
-      const li = document.createElement("li");
-      li.textContent = `#${index + 1}: X=${point.x.toFixed(1)}, Z=${point.z.toFixed(1)}`;
-      waypointList.append(li);
-    });
-
-    waypointStatus.textContent = waypoints.length
-      ? `${waypoints.length} Wegpunkt(e) bereit.`
-      : "Noch keine Wegpunkte gesetzt.";
   }
 
   function setupManualCoordinateForm() {
