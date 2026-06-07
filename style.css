@@ -31,12 +31,6 @@ body {
   font-size: 1.35rem;
 }
 
-.topbar p {
-  margin: 0.3rem 0 0;
-  font-size: 0.95rem;
-  opacity: 0.9;
-}
-
 .layout {
   width: min(1100px, 95%);
   margin: 1.2rem auto;
@@ -99,13 +93,14 @@ body {
   font-size: 1.2rem;
 }
 
-.panel-header small {
+.panel-header small,
+.hint {
   color: var(--muted);
 }
 
 .grid-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 0.8rem;
 }
 
@@ -150,16 +145,6 @@ body {
   color: #991b1b;
 }
 
-.status.neutral {
-  background: #e5e7eb;
-  color: #374151;
-}
-
-.tip,
-.hint {
-  color: var(--muted);
-}
-
 .coord-form {
   display: grid;
   gap: 0.6rem;
@@ -167,14 +152,16 @@ body {
 
 .coord-form label {
   display: grid;
-  gap: 0.2rem;
+  gap: 0.25rem;
+  font-weight: 600;
   font-size: 0.92rem;
 }
 
 .coord-form input {
   border: 1px solid var(--border);
   border-radius: 0.5rem;
-  padding: 0.5rem 0.6rem;
+  padding: 0.55rem 0.65rem;
+  font: inherit;
 }
 
 button {
@@ -182,7 +169,7 @@ button {
   background: var(--accent);
   color: #fff;
   border-radius: 0.5rem;
-  padding: 0.55rem 0.8rem;
+  padding: 0.6rem 0.9rem;
   cursor: pointer;
 }
 
@@ -193,27 +180,31 @@ button.ghost {
 }
 
 .map-card {
-  margin-top: 0.9rem;
+  margin-bottom: 0.9rem;
 }
 
 .coordinate-map {
   position: relative;
   width: 100%;
-  min-height: 320px;
-  border: 1px dashed var(--border);
+  min-height: 380px;
+  border: 1px solid var(--border);
   border-radius: 0.7rem;
+  background-color: #eef7f1;
   background-image:
-    linear-gradient(to right, rgba(20, 83, 45, 0.08) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(20, 83, 45, 0.08) 1px, transparent 1px);
-  background-size: 32px 32px;
+    linear-gradient(to right, rgba(20, 83, 45, 0.12) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(20, 83, 45, 0.12) 1px, transparent 1px),
+    radial-gradient(circle at center, rgba(20, 83, 45, 0.13), transparent 32%);
+  background-size: 32px 32px, 32px 32px, 100% 100%;
   overflow: hidden;
+  cursor: crosshair;
 }
 
 .coordinate-map::before,
 .coordinate-map::after {
   content: "";
   position: absolute;
-  background: rgba(20, 83, 45, 0.4);
+  background: rgba(20, 83, 45, 0.45);
+  pointer-events: none;
 }
 
 .coordinate-map::before {
@@ -230,15 +221,62 @@ button.ghost {
   width: 100%;
 }
 
+.map-axis-label,
+.map-origin-label {
+  position: absolute;
+  z-index: 1;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
+  color: #14532d;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.25rem 0.55rem;
+  pointer-events: none;
+}
+
+.map-axis-top {
+  top: 0.7rem;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.map-axis-right {
+  right: 0.7rem;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.map-origin-label {
+  left: 50%;
+  top: 50%;
+  transform: translate(8px, 8px);
+}
+
 .map-point {
   position: absolute;
-  width: 12px;
-  height: 12px;
+  z-index: 2;
+  width: 16px;
+  height: 16px;
   border-radius: 999px;
   background: #0ea5e9;
   border: 2px solid #fff;
   box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.3);
   transform: translate(-50%, -50%);
+}
+
+.map-point-label {
+  position: absolute;
+  z-index: 3;
+  transform: translate(8px, -24px);
+  min-width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  display: inline-grid;
+  place-items: center;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
 }
 
 .map-coords-row,
@@ -251,10 +289,29 @@ button.ghost {
 }
 
 .waypoint-list {
-  margin: 0.7rem 0 0;
-  padding-left: 1.1rem;
+  margin: 0.9rem 0 0;
+  padding: 0;
+  list-style: none;
   display: grid;
-  gap: 0.3rem;
+  gap: 0.45rem;
+}
+
+.waypoint-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.7rem;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 0.55rem 0.65rem;
+}
+
+.waypoint-item button {
+  border: 1px solid #991b1b;
+  background: #fee2e2;
+  color: #991b1b;
+  border-radius: 0.4rem;
+  padding: 0.3rem 0.6rem;
 }
 
 .video-shell {
@@ -281,71 +338,12 @@ button.ghost {
   color: var(--muted);
 }
 
-.map {
-  width: 100%;
-  height: 360px;
-  border-radius: 0.7rem;
-  border: 1px solid var(--border);
-  margin-bottom: 0.9rem;
-}
-
-.coord-form {
-  display: grid;
-  gap: 0.6rem;
-}
-
-.coord-form label {
-  display: grid;
-  gap: 0.25rem;
-  font-weight: 600;
-}
-
-.coord-form input {
-  border: 1px solid var(--border);
-  border-radius: 0.5rem;
-  padding: 0.55rem 0.65rem;
-  font: inherit;
-}
-
-.coord-form button {
-  justify-self: start;
-  border: 1px solid var(--accent);
-  background: var(--accent);
-  color: #f0fdf4;
-  border-radius: 0.5rem;
-  padding: 0.6rem 0.9rem;
-  cursor: pointer;
-}
-
-.waypoint-list {
-  margin: 0.9rem 0 0;
-  padding: 0;
-  list-style: none;
-  display: grid;
-  gap: 0.45rem;
-}
-
-.waypoint-item {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.7rem;
-  align-items: center;
-  border: 1px solid var(--border);
-  border-radius: 0.5rem;
-  padding: 0.45rem 0.55rem;
-}
-
-.waypoint-item button {
-  border: 1px solid #991b1b;
-  background: #fee2e2;
-  color: #991b1b;
-  border-radius: 0.4rem;
-  padding: 0.3rem 0.6rem;
-  cursor: pointer;
-}
-
 @media (max-width: 760px) {
   .menu {
     grid-template-columns: 1fr;
+  }
+
+  .coordinate-map {
+    min-height: 300px;
   }
 }
