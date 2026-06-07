@@ -27,9 +27,11 @@ document.addEventListener("DOMContentLoaded", () => {
   const cameraPlaceholderEl = document.getElementById("camera-placeholder");
 
   const fields = {
+    temperature: document.getElementById("temperature"),
     tempOut: document.getElementById("temp-out"),
     tempIn: document.getElementById("temp-in"),
     heading: document.getElementById("heading"),
+    humidity: document.getElementById("humidity"),
     humOut: document.getElementById("hum-out"),
     humIn: document.getElementById("hum-in"),
     distance: document.getElementById("distance"),
@@ -56,29 +58,35 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function listenToFirebase() {
     const sensorRef = ref(db, "sensor");
+    const temperatureRef = ref(db, "sensor/temperature");
+    const humidityRef = ref(db, "sensor/humidity");
     const distanceRef = ref(db, "sensors/distance");
+
+    onValue(temperatureRef, (snapshot) => {
+      if (snapshot.exists()) updateTemperatureUI(snapshot.val());
+    });
+
+    onValue(humidityRef, (snapshot) => {
+      if (snapshot.exists()) updateHumidityUI(snapshot.val());
+    });
+
+    onValue(distanceRef, (snapshot) => {
+      if (snapshot.exists()) updateDistanceUI(snapshot.val());
+    });
 
     onValue(sensorRef, (snapshot) => {
       const data = snapshot.val();
       if (!data) return;
 
-      updateSensorUI(data);
-
-      if (data.distance !== undefined) {
-        updateDistanceUI(data.distance);
-      }
-
+      if (data.heading !== undefined) updateHeadingUI(data.heading);
       setStatus("ok", "Sensordaten empfangen");
     });
 
-    onValue(distanceRef, (snapshot) => {
-      if (snapshot.exists()) {
-        updateDistanceUI(snapshot.val());
-      }
-    });
-
-    refreshAllSensors(sensorRef, distanceRef);
-    setInterval(() => refreshAllSensors(sensorRef, distanceRef), config.sensorRefreshMs);
+    refreshArduinoSensors(temperatureRef, humidityRef, distanceRef);
+    setInterval(
+      () => refreshArduinoSensors(temperatureRef, humidityRef, distanceRef),
+      config.sensorRefreshMs,
+    );
 
     onValue(ref(db, "location"), (snapshot) => {
       const data = snapshot.val();
@@ -86,25 +94,17 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  async function refreshAllSensors(sensorRef, distanceRef) {
+  async function refreshArduinoSensors(temperatureRef, humidityRef, distanceRef) {
     try {
-      const [sensorSnapshot, distanceSnapshot] = await Promise.all([
-        get(sensorRef),
+      const [temperatureSnapshot, humiditySnapshot, distanceSnapshot] = await Promise.all([
+        get(temperatureRef),
+        get(humidityRef),
         get(distanceRef),
       ]);
 
-      if (sensorSnapshot.exists()) {
-        const sensorData = sensorSnapshot.val();
-        updateSensorUI(sensorData);
-
-        if (sensorData.distance !== undefined) {
-          updateDistanceUI(sensorData.distance);
-        }
-      }
-
-      if (distanceSnapshot.exists()) {
-        updateDistanceUI(distanceSnapshot.val());
-      }
+      if (temperatureSnapshot.exists()) updateTemperatureUI(temperatureSnapshot.val());
+      if (humiditySnapshot.exists()) updateHumidityUI(humiditySnapshot.val());
+      if (distanceSnapshot.exists()) updateDistanceUI(distanceSnapshot.val());
 
       setStatus("ok", "Sensordaten aktualisiert");
     } catch (error) {
@@ -118,38 +118,53 @@ document.addEventListener("DOMContentLoaded", () => {
     sensorStatus.textContent = message;
   }
 
+  function setText(field, value) {
+    if (field) field.textContent = value;
+  }
+
   function safeValue(value, digits = 1) {
     const number = Number(value);
     if (!Number.isFinite(number)) return "--";
     return number.toFixed(digits);
   }
 
-  function updateSensorUI(data) {
-    fields.tempOut.textContent = safeValue(data?.temperature);
-    fields.tempIn.textContent = safeValue(data?.temperature);
-    fields.humOut.textContent = safeValue(data?.humidity);
-    fields.humIn.textContent = safeValue(data?.humidity);
+  function updateTemperatureUI(temperature) {
+    const value = safeValue(temperature, 1);
+    setText(fields.temperature, value);
+    setText(fields.tempOut, value);
+    setText(fields.tempIn, value);
+    updateLastUpdated();
+  }
 
-    const heading = data?.heading;
-    fields.heading.textContent = heading?.cardinal
-      ? `${heading.cardinal} (${safeValue(heading.deg, 0)}°)`
-      : "--";
-
+  function updateHumidityUI(humidity) {
+    const value = safeValue(humidity, 1);
+    setText(fields.humidity, value);
+    setText(fields.humOut, value);
+    setText(fields.humIn, value);
     updateLastUpdated();
   }
 
   function updateDistanceUI(distanceCm) {
-    fields.distance.textContent = safeValue(distanceCm, 1);
+    setText(fields.distance, safeValue(distanceCm, 1));
     updateLastUpdated();
   }
 
+  function updateHeadingUI(heading) {
+    const value = heading?.cardinal
+      ? `${heading.cardinal} (${safeValue(heading.deg, 0)}°)`
+      : "--";
+
+    setText(fields.heading, value);
+  }
+
   function updateLastUpdated() {
+    if (!lastUpdated) return;
     lastUpdated.textContent = `Letztes Update: ${new Date().toLocaleTimeString("de-DE")}`;
   }
 
   function updateLocationUI(data) {
-    fields.lat.textContent = safeValue(data?.lat, 6);
-    fields.lng.textContent = safeValue(data?.lng, 6);
+    setText(fields.lat, safeValue(data?.lat, 6));
+    setText(fields.lng, safeValue(data?.lng, 6));
   }
 
   async function postJson(url, payload) {
