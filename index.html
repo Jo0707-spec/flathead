@@ -5,6 +5,7 @@
   <meta charset="utf-8" />
   <title>Flathead Control Center</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -56,13 +57,54 @@
 
     <section id="location" class="panel">
       <div class="panel-header">
-        <h2>Standort</h2>
+        <h2>Standort & Navigation</h2>
       </div>
 
-      <article class="card">
-        <p>Lat: <strong id="lat">--</strong></p>
-        <p>Lng: <strong id="lng">--</strong></p>
-      </article>
+      <div class="grid-cards map-layout">
+        <article class="card">
+          <p>Lat: <strong id="lat">--</strong></p>
+          <p>Lng: <strong id="lng">--</strong></p>
+          <p class="hint">Klicke auf die Karte oder nutze das Formular, um Wegpunkte zu setzen.</p>
+        </article>
+
+        <article class="card map-card">
+          <h3>Karte</h3>
+          <div id="map"></div>
+        </article>
+
+        <article class="card">
+          <h3>Wegpunkt senden</h3>
+          <form id="waypoint-form" class="stack-form">
+            <label>Breitengrad (Lat)
+              <input type="number" id="waypoint-lat" step="0.000001" required />
+            </label>
+            <label>Längengrad (Lng)
+              <input type="number" id="waypoint-lng" step="0.000001" required />
+            </label>
+            <label>Name (optional)
+              <input type="text" id="waypoint-label" maxlength="40" placeholder="z. B. Ziel A" />
+            </label>
+            <button type="submit">Wegpunkt an ESP32 senden</button>
+          </form>
+        </article>
+
+        <article class="card">
+          <h3>Manuelle Koordinaten (X/Z)</h3>
+          <form id="axis-form" class="stack-form">
+            <label>X
+              <input type="number" id="axis-x" step="0.01" required />
+            </label>
+            <label>Z
+              <input type="number" id="axis-z" step="0.01" required />
+            </label>
+            <button type="submit">X/Z an ESP32 senden</button>
+          </form>
+        </article>
+      </div>
+
+      <div class="status-row">
+        <span id="command-status" class="status neutral">Noch kein Befehl gesendet</span>
+      </div>
     </section>
 
     <section id="camera" class="panel">
@@ -77,6 +119,7 @@
       </article>
     </section>
   </main>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
  <script type="module">
   import "./app.js";
 </script>

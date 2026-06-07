@@ -108,6 +108,10 @@ body {
   gap: 0.8rem;
 }
 
+.map-layout {
+  align-items: start;
+}
+
 .card {
   border: 1px solid var(--border);
   border-radius: 0.7rem;
@@ -123,6 +127,52 @@ body {
 
 .card p {
   margin: 0.45rem 0;
+}
+
+.map-card {
+  grid-column: 1 / -1;
+}
+
+#map {
+  width: 100%;
+  min-height: 360px;
+  border-radius: 0.65rem;
+  border: 1px solid var(--border);
+}
+
+.stack-form {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.stack-form label {
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.92rem;
+  color: var(--muted);
+}
+
+.stack-form input {
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 0.55rem 0.6rem;
+  font: inherit;
+  color: var(--text);
+}
+
+.stack-form button {
+  border: 1px solid transparent;
+  background: var(--accent);
+  color: #f0fdf4;
+  border-radius: 0.5rem;
+  padding: 0.6rem;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.stack-form button:hover {
+  background: #166534;
 }
 
 .status-row {
@@ -186,5 +236,9 @@ body {
 @media (max-width: 760px) {
   .menu {
     grid-template-columns: 1fr;
+  }
+
+  #map {
+    min-height: 300px;
   }
 }
