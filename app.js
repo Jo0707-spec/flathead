@@ -54,20 +54,29 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  function listenToFirebase() {
-    onValue(ref(db, "sensors"), (snapshot) => {
-      const data = snapshot.val();
-      if (!data) return;
+ function listenToFirebase() {
+  onValue(ref(db, "sensors"), (snapshot) => {
+    const data = snapshot.val();
+    if (!data) return;
 
-      updateSensorUI({
-  updateSensorUI({
-  temperature: data.temperature,
-  humidity: data.humidity,
-  distanceCm: data.distance,
-  heading: data.heading || null,
-});
-});
-      });
+    // 🔥 DIREKT Daten anzeigen
+    fields.tempOut.textContent = safeValue(data.temperature);
+    fields.tempIn.textContent = safeValue(data.temperature);
+
+    fields.humOut.textContent = safeValue(data.humidity);
+    fields.humIn.textContent = safeValue(data.humidity);
+
+    fields.distance.textContent = safeValue(data.distance, 1);
+
+    updateLastUpdated();
+    setStatus("ok", "Sensordaten empfangen");
+  });
+
+  onValue(ref(db, "location"), (snapshot) => {
+    const data = snapshot.val();
+    if (data) updateLocationUI(data);
+  });
+}
 
       if (data.distance !== undefined) {
         updateDistanceUI(data.distance);
