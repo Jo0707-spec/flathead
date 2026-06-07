@@ -55,20 +55,18 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function listenToFirebase() {
-    onValue(ref(db, "sensor"), (snapshot) => {
+    onValue(ref(db, "sensors"), (snapshot) => {
       const data = snapshot.val();
       if (!data) return;
 
       updateSensorUI({
-        temperature: {
-          outside: data.temperature,
-          inside: data.temperature,
-        },
-        humidity: {
-          outside: data.humidity,
-          inside: data.humidity,
-        },
-        heading: data.heading || null,
+  updateSensorUI({
+  temperature: data.temperature,
+  humidity: data.humidity,
+  distanceCm: data.distance,
+  heading: data.heading || null,
+});
+});
       });
 
       if (data.distance !== undefined) {
@@ -120,18 +118,23 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function updateSensorUI(data) {
-    fields.tempOut.textContent = safeValue(data?.temperature?.outside);
-    fields.tempIn.textContent = safeValue(data?.temperature?.inside);
-    fields.humOut.textContent = safeValue(data?.humidity?.outside);
-    fields.humIn.textContent = safeValue(data?.humidity?.inside);
+  fields.tempOut.textContent = safeValue(data?.temperature);
+  fields.tempIn.textContent = safeValue(data?.temperature);
 
-    const heading = data?.heading;
-    fields.heading.textContent = heading?.cardinal
-      ? `${heading.cardinal} (${safeValue(heading.deg, 0)}°)`
-      : "--";
+  fields.humOut.textContent = safeValue(data?.humidity);
+  fields.humIn.textContent = safeValue(data?.humidity);
 
-    updateLastUpdated();
+  if (data?.distanceCm !== undefined) {
+    fields.distance.textContent = safeValue(data.distanceCm, 1);
   }
+
+  const heading = data?.heading;
+  fields.heading.textContent = heading?.cardinal
+    ? `${heading.cardinal} (${safeValue(heading.deg, 0)}°)`
+    : "--";
+
+  updateLastUpdated();
+}
 
   function updateDistanceUI(distanceCm) {
     fields.distance.textContent = safeValue(distanceCm, 1);
