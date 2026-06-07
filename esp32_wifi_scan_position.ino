@@ -12,7 +12,7 @@ FirebaseData fbdo;
 FirebaseAuth auth;
 FirebaseConfig config;
 
-const unsigned long SCAN_INTERVAL_MS = 2000;
+const unsigned long SCAN_INTERVAL_MS = 1500;
 unsigned long lastScanMs = 0;
 
 String firebaseKey(String value) {
