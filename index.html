@@ -15,7 +15,7 @@
   <main class="layout">
     <nav class="menu">
       <button class="menu-btn active" data-target="dashboard">1) Sensor-Daten Dashboard</button>
-      <button class="menu-btn" data-target="location">2) Aufenthaltsort des Raspberrys</button>
+      <button class="menu-btn" data-target="location">2) Karte & Wegpunkte</button>
       <button class="menu-btn" data-target="camera">3) Live Kamera Feed</button>
     </nav>
 
@@ -54,48 +54,62 @@
 
     <section id="location" class="panel">
       <div class="panel-header">
-        <h2>Aufenthaltsort des Raspberrys</h2>
+        <h2>Karte & Wegpunkte</h2>
+        <small>GPX-Export für GPS-Wegpunkte</small>
+      </div>
+
+      <div class="map-card card">
+        <div id="waypoint-map" class="coordinate-map gps-map" role="img" aria-label="Wegpunkt-Karte">
+          <div class="map-axis-label map-axis-top">Nord / Z+</div>
+          <div class="map-axis-label map-axis-right">Ost / X+</div>
+          <div class="map-origin-label">Start</div>
+        </div>
+        <div class="map-coords-row">
+          <span>Aktuelle Auswahl: Lat <strong id="selected-lat">--</strong>, Lng <strong id="selected-lng">--</strong></span>
+          <span><strong id="waypoint-count">0</strong> Wegpunkte</span>
+        </div>
       </div>
 
       <div class="grid-cards">
         <article class="card">
-          <h3>WLAN-Ortung</h3>
-          <p>Ort: <strong id="wifi-place">--</strong></p>
-          <p>Genauigkeit: <strong id="wifi-confidence">--</strong> %</p>
-          <p>X: <strong id="wifi-x">--</strong> m</p>
-          <p>Z: <strong id="wifi-z">--</strong> m</p>
-          <p class="hint">Quelle: <span id="wifi-source">--</span></p>
-        </article>
-
-        <article class="card">
-          <h3>Aktueller WLAN-Scan</h3>
-          <p>Gerät: <strong id="wifi-device">--</strong></p>
-          <p>Netzwerke: <strong id="wifi-network-count">--</strong></p>
-          <p>Letzter Scan: <strong id="wifi-updated">--</strong></p>
-        </article>
-
-        <article class="card">
-          <h3>GPS-Daten</h3>
-          <p>Lat: <strong id="lat">--</strong></p>
-          <p>Lng: <strong id="lng">--</strong></p>
-        </article>
-
-        <article class="card">
-          <h3>Manuelle X/Z Steuerung</h3>
-          <form id="manual-coord-form" class="coord-form">
+          <h3>GPS-Wegpunkt hinzufügen</h3>
+          <form id="waypoint-form" class="coord-form">
             <label>
-              X
-              <input id="manual-x" type="number" step="0.1" required />
+              Name
+              <input id="waypoint-name" type="text" placeholder="z.B. Tisch" required />
             </label>
             <label>
-              Z
-              <input id="manual-z" type="number" step="0.1" required />
+              Latitude
+              <input id="waypoint-lat" type="number" step="0.000001" placeholder="48.208174" required />
             </label>
-            <button type="submit">An ESP32 senden</button>
+            <label>
+              Longitude
+              <input id="waypoint-lng" type="number" step="0.000001" placeholder="16.373819" required />
+            </label>
+            <label>
+              Höhe Z in Meter
+              <input id="waypoint-ele" type="number" step="0.1" value="0" />
+            </label>
+            <button type="submit">Wegpunkt speichern</button>
           </form>
-          <p id="manual-send-status" class="hint">Bereit.</p>
+          <p id="waypoint-status" class="hint">Klicke auf die Karte oder gib GPS-Koordinaten ein.</p>
+        </article>
+
+        <article class="card">
+          <h3>Export</h3>
+          <p>GPX-Dateien speichern Wegpunkte als Latitude, Longitude und optional Höhe.</p>
+          <div class="waypoint-actions">
+            <button id="export-gpx" type="button">GPX exportieren</button>
+            <button id="clear-waypoints" class="ghost" type="button">Wegpunkte löschen</button>
+          </div>
+          <p class="hint">Die Datei kann später wieder in Kartenprogramme, Python oder eigene Steuerungslogik eingelesen werden.</p>
         </article>
       </div>
+
+      <article class="card map-card">
+        <h3>Gespeicherte Wegpunkte</h3>
+        <ol id="waypoint-list" class="waypoint-list"></ol>
+      </article>
     </section>
 
     <section id="camera" class="panel">
@@ -110,7 +124,7 @@
     </section>
   </main>
  <script type="module">
-  import "./app.js?v=20260607-positions-2";
+  import "./app.js?v=20260607-gpx-waypoints-1";
 </script>
 </body>
 </html>
