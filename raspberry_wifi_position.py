@@ -12,6 +12,7 @@ API_KEY = "AIzaSyDcjgVtCEZGSOepoX4c5mBsZ0UtbjvTEpU"
 DATABASE_URL = "https://flathead-d96d6-default-rtdb.europe-west1.firebasedatabase.app"
 SCAN_INTERVAL_SECONDS = 1.5
 MISSING_NETWORK_PENALTY = 25
+AUTO_LEARN_SCORE_THRESHOLD = 18
 
 
 def now_ms():
@@ -164,6 +165,7 @@ def estimate_position(current_networks, fingerprints):
         if best is None or score < best["score"]:
             confidence = max(0, min(100, 100 - score * 2.5))
             best = {
+                "key": key,
                 "name": fingerprint.get("name", key),
                 "x": fingerprint.get("x", 0),
                 "z": fingerprint.get("z", 0),
@@ -176,6 +178,47 @@ def estimate_position(current_networks, fingerprints):
     return best
 
 
+def next_auto_place_name(fingerprints):
+    highest = 0
+
+    for fingerprint in (fingerprints or {}).values():
+        name = str(fingerprint.get("name", ""))
+        match = re.fullmatch(r"Ort (\d+)", name)
+        if match:
+            highest = max(highest, int(match.group(1)))
+
+    return f"Ort {highest + 1}"
+
+
+def auto_learn_place(networks, fingerprints, token):
+    name = next_auto_place_name(fingerprints)
+    key = firebase_key(name)
+    fingerprint = {
+        "name": name,
+        "x": 0,
+        "z": 0,
+        "autoLearned": True,
+        "networks": networks,
+        "updatedAt": now_ms(),
+    }
+
+    firebase_put(f"position/fingerprints/{key}", token, fingerprint)
+
+    estimate = {
+        "key": key,
+        "name": name,
+        "x": 0,
+        "z": 0,
+        "score": 0,
+        "confidence": 100,
+        "source": "raspberry-pi-wifi-auto-learn",
+        "autoLearned": True,
+        "updatedAt": now_ms(),
+    }
+    firebase_put("position/estimate", token, estimate)
+    return estimate
+
+
 def calibrate(args, token):
     networks = scan_wifi(args.interface)
     if not networks:
@@ -186,6 +229,7 @@ def calibrate(args, token):
         "name": name,
         "x": args.x,
         "z": args.z,
+        "autoLearned": False,
         "networks": networks,
         "updatedAt": now_ms(),
     }
@@ -209,14 +253,17 @@ def run_position_loop(args, token):
         fingerprints = firebase_get("position/fingerprints", token) or {}
         estimate = estimate_position(networks, fingerprints)
 
-        if estimate:
+        if args.auto_learn and networks and (not estimate or estimate["score"] > args.auto_learn_threshold):
+            estimate = auto_learn_place(networks, fingerprints, token)
+            print(f"Neuer Ort automatisch gespeichert: {estimate['name']} | Netze={len(networks)}")
+        elif estimate:
             firebase_put("position/estimate", token, estimate)
             print(
                 f"Ort: {estimate['name']} | Vertrauen: {estimate['confidence']}% | "
-                f"X={estimate['x']} Z={estimate['z']} | Netze={len(networks)}"
+                f"Score={estimate['score']} | Netze={len(networks)}"
             )
         else:
-            print(f"Scan OK: {len(networks)} Netze. Noch keine Referenzpunkte kalibriert.")
+            print(f"Scan OK: {len(networks)} Netze. Auto-Lernen ist ausgeschaltet oder keine Netze gefunden.")
 
         time.sleep(args.interval)
 
@@ -228,6 +275,9 @@ def main():
     parser.add_argument("--calibrate", help="Name des Referenzpunktes, z.B. Schreibtisch")
     parser.add_argument("--x", type=float, default=0, help="X-Koordinate des Referenzpunktes")
     parser.add_argument("--z", type=float, default=0, help="Z-Koordinate des Referenzpunktes")
+    parser.add_argument("--no-auto-learn", action="store_false", dest="auto_learn", help="Neue Orte nicht automatisch speichern")
+    parser.add_argument("--auto-learn-threshold", type=float, default=AUTO_LEARN_SCORE_THRESHOLD, help="Hoeherer Wert lernt weniger neue Orte")
+    parser.set_defaults(auto_learn=True)
     args = parser.parse_args()
 
     token = sign_in_anonymously()
