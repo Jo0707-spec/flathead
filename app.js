@@ -37,6 +37,14 @@ document.addEventListener("DOMContentLoaded", () => {
     distance: document.getElementById("distance"),
     lat: document.getElementById("lat"),
     lng: document.getElementById("lng"),
+    wifiPlace: document.getElementById("wifi-place"),
+    wifiConfidence: document.getElementById("wifi-confidence"),
+    wifiX: document.getElementById("wifi-x"),
+    wifiZ: document.getElementById("wifi-z"),
+    wifiSource: document.getElementById("wifi-source"),
+    wifiDevice: document.getElementById("wifi-device"),
+    wifiNetworkCount: document.getElementById("wifi-network-count"),
+    wifiUpdated: document.getElementById("wifi-updated"),
   };
 
   setupTabs(menuButtons, panels);
@@ -88,6 +96,14 @@ document.addEventListener("DOMContentLoaded", () => {
       config.sensorRefreshMs,
     );
 
+    onValue(ref(db, "position/estimate"), (snapshot) => {
+      updateWifiPositionUI(snapshot.val());
+    });
+
+    onValue(ref(db, "position/wifi/current"), (snapshot) => {
+      updateWifiScanUI(snapshot.val());
+    });
+
     onValue(ref(db, "location"), (snapshot) => {
       const data = snapshot.val();
       if (data) updateLocationUI(data);
@@ -128,6 +144,17 @@ document.addEventListener("DOMContentLoaded", () => {
     return number.toFixed(digits);
   }
 
+  function formatTime(timestamp) {
+    const number = Number(timestamp);
+    if (!Number.isFinite(number)) return "--";
+    return new Date(number).toLocaleTimeString("de-DE");
+  }
+
+  function countNetworks(networks) {
+    if (!networks || typeof networks !== "object") return 0;
+    return Object.keys(networks).length;
+  }
+
   function updateTemperatureUI(temperature) {
     const value = safeValue(temperature, 1);
     setText(fields.temperature, value);
@@ -155,6 +182,36 @@ document.addEventListener("DOMContentLoaded", () => {
       : "--";
 
     setText(fields.heading, value);
+  }
+
+  function updateWifiPositionUI(data) {
+    if (!data) {
+      setText(fields.wifiPlace, "--");
+      setText(fields.wifiConfidence, "--");
+      setText(fields.wifiX, "--");
+      setText(fields.wifiZ, "--");
+      setText(fields.wifiSource, "--");
+      return;
+    }
+
+    setText(fields.wifiPlace, data.name || "Unbekannt");
+    setText(fields.wifiConfidence, safeValue(data.confidence, 0));
+    setText(fields.wifiX, safeValue(data.x, 2));
+    setText(fields.wifiZ, safeValue(data.z, 2));
+    setText(fields.wifiSource, data.source || "--");
+  }
+
+  function updateWifiScanUI(data) {
+    if (!data) {
+      setText(fields.wifiDevice, "--");
+      setText(fields.wifiNetworkCount, "--");
+      setText(fields.wifiUpdated, "--");
+      return;
+    }
+
+    setText(fields.wifiDevice, data.device || "--");
+    setText(fields.wifiNetworkCount, String(countNetworks(data.networks)));
+    setText(fields.wifiUpdated, formatTime(data.updatedAt));
   }
 
   function updateLastUpdated() {
