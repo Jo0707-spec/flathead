@@ -59,6 +59,22 @@
 
       <div class="grid-cards">
         <article class="card">
+          <h3>WLAN-Ortung</h3>
+          <p>Ort: <strong id="wifi-place">--</strong></p>
+          <p>Genauigkeit: <strong id="wifi-confidence">--</strong> %</p>
+          <p>X: <strong id="wifi-x">--</strong> m</p>
+          <p>Z: <strong id="wifi-z">--</strong> m</p>
+          <p class="hint">Quelle: <span id="wifi-source">--</span></p>
+        </article>
+
+        <article class="card">
+          <h3>Aktueller WLAN-Scan</h3>
+          <p>Gerät: <strong id="wifi-device">--</strong></p>
+          <p>Netzwerke: <strong id="wifi-network-count">--</strong></p>
+          <p>Letzter Scan: <strong id="wifi-updated">--</strong></p>
+        </article>
+
+        <article class="card">
           <h3>GPS-Daten</h3>
           <p>Lat: <strong id="lat">--</strong></p>
           <p>Lng: <strong id="lng">--</strong></p>
@@ -94,7 +110,7 @@
     </section>
   </main>
  <script type="module">
-  import "./app.js?v=20260607-1931";
+  import "./app.js?v=20260607-positions-1";
 </script>
 </body>
 </html>
