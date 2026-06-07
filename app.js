@@ -9,9 +9,13 @@ const firebaseConfig = {
 };
 
 const config = {
-  espCommandUrl: "http://192.168.68.136:5000/api/esp32/target",
   cameraFeedUrl: "https://unretaliating-armani-offensively.ngrok-free.dev/video_feed",
   sensorRefreshMs: 1500,
+  mapCenter: {
+    lat: 48.208174,
+    lng: 16.373819,
+  },
+  mapSpanDeg: 0.002,
 };
 
 const app = initializeApp(firebaseConfig);
@@ -28,28 +32,36 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const fields = {
     temperature: document.getElementById("temperature"),
-    tempOut: document.getElementById("temp-out"),
-    tempIn: document.getElementById("temp-in"),
     heading: document.getElementById("heading"),
     humidity: document.getElementById("humidity"),
-    humOut: document.getElementById("hum-out"),
-    humIn: document.getElementById("hum-in"),
     distance: document.getElementById("distance"),
-    lat: document.getElementById("lat"),
-    lng: document.getElementById("lng"),
-    wifiPlace: document.getElementById("wifi-place"),
-    wifiConfidence: document.getElementById("wifi-confidence"),
-    wifiX: document.getElementById("wifi-x"),
-    wifiZ: document.getElementById("wifi-z"),
-    wifiSource: document.getElementById("wifi-source"),
-    wifiDevice: document.getElementById("wifi-device"),
-    wifiNetworkCount: document.getElementById("wifi-network-count"),
-    wifiUpdated: document.getElementById("wifi-updated"),
+  };
+
+  const waypointState = {
+    items: [],
+    selectedLat: config.mapCenter.lat,
+    selectedLng: config.mapCenter.lng,
+  };
+
+  const waypointEls = {
+    map: document.getElementById("waypoint-map"),
+    form: document.getElementById("waypoint-form"),
+    name: document.getElementById("waypoint-name"),
+    lat: document.getElementById("waypoint-lat"),
+    lng: document.getElementById("waypoint-lng"),
+    ele: document.getElementById("waypoint-ele"),
+    status: document.getElementById("waypoint-status"),
+    list: document.getElementById("waypoint-list"),
+    count: document.getElementById("waypoint-count"),
+    selectedLat: document.getElementById("selected-lat"),
+    selectedLng: document.getElementById("selected-lng"),
+    exportGpx: document.getElementById("export-gpx"),
+    clear: document.getElementById("clear-waypoints"),
   };
 
   setupTabs(menuButtons, panels);
   setupCameraFeed(cameraFeedEl, cameraPlaceholderEl);
-  setupManualCoordinateForm();
+  setupWaypointTools();
   listenToFirebase();
 
   function setupTabs(buttons, panelElements) {
@@ -95,19 +107,6 @@ document.addEventListener("DOMContentLoaded", () => {
       () => refreshArduinoSensors(temperatureRef, humidityRef, distanceRef),
       config.sensorRefreshMs,
     );
-
-    onValue(ref(db, "position/estimate"), (snapshot) => {
-      updateWifiPositionUI(snapshot.val());
-    });
-
-    onValue(ref(db, "position/wifi/current"), (snapshot) => {
-      updateWifiScanUI(snapshot.val());
-    });
-
-    onValue(ref(db, "location"), (snapshot) => {
-      const data = snapshot.val();
-      if (data) updateLocationUI(data);
-    });
   }
 
   async function refreshArduinoSensors(temperatureRef, humidityRef, distanceRef) {
@@ -128,6 +127,147 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  function setupWaypointTools() {
+    if (!waypointEls.map || !waypointEls.form) return;
+
+    updateSelectedCoordinate(config.mapCenter.lat, config.mapCenter.lng);
+    renderWaypoints();
+
+    waypointEls.map.addEventListener("click", (event) => {
+      const rect = waypointEls.map.getBoundingClientRect();
+      const xRatio = clamp((event.clientX - rect.left) / rect.width, 0, 1);
+      const yRatio = clamp((event.clientY - rect.top) / rect.height, 0, 1);
+      const lng = config.mapCenter.lng + (xRatio - 0.5) * config.mapSpanDeg;
+      const lat = config.mapCenter.lat + (0.5 - yRatio) * config.mapSpanDeg;
+
+      updateSelectedCoordinate(lat, lng);
+      setWaypointStatus("Koordinate aus Karte übernommen. Name eintragen und speichern.");
+    });
+
+    waypointEls.form.addEventListener("submit", (event) => {
+      event.preventDefault();
+
+      const name = waypointEls.name.value.trim();
+      const lat = Number(waypointEls.lat.value);
+      const lng = Number(waypointEls.lng.value);
+      const ele = Number(waypointEls.ele.value || 0);
+
+      if (!name || !Number.isFinite(lat) || !Number.isFinite(lng) || !Number.isFinite(ele)) {
+        setWaypointStatus("Bitte gültigen Namen, Latitude, Longitude und Höhe eingeben.");
+        return;
+      }
+
+      waypointState.items.push({ name, lat, lng, ele, createdAt: new Date().toISOString() });
+      waypointEls.name.value = "";
+      renderWaypoints();
+      setWaypointStatus(`Wegpunkt gespeichert: ${name}`);
+    });
+
+    waypointEls.exportGpx?.addEventListener("click", () => exportGpx());
+    waypointEls.clear?.addEventListener("click", () => {
+      waypointState.items = [];
+      renderWaypoints();
+      setWaypointStatus("Alle Wegpunkte gelöscht.");
+    });
+  }
+
+  function updateSelectedCoordinate(lat, lng) {
+    waypointState.selectedLat = lat;
+    waypointState.selectedLng = lng;
+    setText(waypointEls.selectedLat, safeValue(lat, 6));
+    setText(waypointEls.selectedLng, safeValue(lng, 6));
+    if (waypointEls.lat) waypointEls.lat.value = lat.toFixed(6);
+    if (waypointEls.lng) waypointEls.lng.value = lng.toFixed(6);
+  }
+
+  function renderWaypoints() {
+    if (!waypointEls.map || !waypointEls.list) return;
+
+    waypointEls.map.querySelectorAll(".map-point, .map-point-label").forEach((item) => item.remove());
+    waypointEls.list.innerHTML = "";
+    setText(waypointEls.count, String(waypointState.items.length));
+
+    waypointState.items.forEach((waypoint, index) => {
+      addWaypointToMap(waypoint, index);
+      addWaypointToList(waypoint, index);
+    });
+  }
+
+  function addWaypointToMap(waypoint, index) {
+    const xRatio = clamp(0.5 + (waypoint.lng - config.mapCenter.lng) / config.mapSpanDeg, 0, 1);
+    const yRatio = clamp(0.5 - (waypoint.lat - config.mapCenter.lat) / config.mapSpanDeg, 0, 1);
+
+    const point = document.createElement("div");
+    point.className = "map-point";
+    point.style.left = `${xRatio * 100}%`;
+    point.style.top = `${yRatio * 100}%`;
+    point.title = `${waypoint.name}: ${waypoint.lat.toFixed(6)}, ${waypoint.lng.toFixed(6)}`;
+    waypointEls.map.appendChild(point);
+
+    const label = document.createElement("span");
+    label.className = "map-point-label";
+    label.style.left = `${xRatio * 100}%`;
+    label.style.top = `${yRatio * 100}%`;
+    label.textContent = String(index + 1);
+    waypointEls.map.appendChild(label);
+  }
+
+  function addWaypointToList(waypoint, index) {
+    const item = document.createElement("li");
+    item.className = "waypoint-item";
+
+    const text = document.createElement("span");
+    text.textContent = `${index + 1}. ${waypoint.name} · Lat ${waypoint.lat.toFixed(6)}, Lng ${waypoint.lng.toFixed(6)}, Z ${waypoint.ele.toFixed(1)} m`;
+
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.textContent = "Löschen";
+    remove.addEventListener("click", () => {
+      waypointState.items.splice(index, 1);
+      renderWaypoints();
+    });
+
+    item.append(text, remove);
+    waypointEls.list.appendChild(item);
+  }
+
+  function exportGpx() {
+    if (waypointState.items.length === 0) {
+      setWaypointStatus("Keine Wegpunkte zum Exportieren vorhanden.");
+      return;
+    }
+
+    const gpx = buildGpx(waypointState.items);
+    const blob = new Blob([gpx], { type: "application/gpx+xml;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `flathead-wegpunkte-${new Date().toISOString().slice(0, 10)}.gpx`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    setWaypointStatus("GPX-Datei exportiert.");
+  }
+
+  function buildGpx(waypoints) {
+    const points = waypoints.map((waypoint) => `  <wpt lat="${escapeXml(waypoint.lat.toFixed(6))}" lon="${escapeXml(waypoint.lng.toFixed(6))}">
+    <ele>${escapeXml(waypoint.ele.toFixed(1))}</ele>
+    <name>${escapeXml(waypoint.name)}</name>
+    <time>${escapeXml(waypoint.createdAt)}</time>
+  </wpt>`).join("\n");
+
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="Flathead Control Center" xmlns="http://www.topografix.com/GPX/1/1">
+${points}
+</gpx>
+`;
+  }
+
+  function setWaypointStatus(message) {
+    setText(waypointEls.status, message);
+  }
+
   function setStatus(type, message) {
     if (!sensorStatus) return;
     sensorStatus.className = `status ${type}`;
@@ -144,30 +284,26 @@ document.addEventListener("DOMContentLoaded", () => {
     return number.toFixed(digits);
   }
 
-  function formatTime(timestamp) {
-    const number = Number(timestamp);
-    if (!Number.isFinite(number)) return "--";
-    return new Date(number).toLocaleTimeString("de-DE");
+  function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value));
   }
 
-  function countNetworks(networks) {
-    if (!networks || typeof networks !== "object") return 0;
-    return Object.keys(networks).length;
+  function escapeXml(value) {
+    return String(value)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&apos;");
   }
 
   function updateTemperatureUI(temperature) {
-    const value = safeValue(temperature, 1);
-    setText(fields.temperature, value);
-    setText(fields.tempOut, value);
-    setText(fields.tempIn, value);
+    setText(fields.temperature, safeValue(temperature, 1));
     updateLastUpdated();
   }
 
   function updateHumidityUI(humidity) {
-    const value = safeValue(humidity, 1);
-    setText(fields.humidity, value);
-    setText(fields.humOut, value);
-    setText(fields.humIn, value);
+    setText(fields.humidity, safeValue(humidity, 1));
     updateLastUpdated();
   }
 
@@ -184,61 +320,9 @@ document.addEventListener("DOMContentLoaded", () => {
     setText(fields.heading, value);
   }
 
-  function updateWifiPositionUI(data) {
-    if (!data) {
-      setText(fields.wifiPlace, "--");
-      setText(fields.wifiConfidence, "--");
-      setText(fields.wifiX, "--");
-      setText(fields.wifiZ, "--");
-      setText(fields.wifiSource, "--");
-      return;
-    }
-
-    setText(fields.wifiPlace, data.name || "Unbekannt");
-    setText(fields.wifiConfidence, safeValue(data.confidence, 0));
-    setText(fields.wifiX, safeValue(data.x, 2));
-    setText(fields.wifiZ, safeValue(data.z, 2));
-    setText(fields.wifiSource, data.source || "--");
-  }
-
-  function updateWifiScanUI(data) {
-    if (!data) {
-      setText(fields.wifiDevice, "--");
-      setText(fields.wifiNetworkCount, "--");
-      setText(fields.wifiUpdated, "--");
-      return;
-    }
-
-    setText(fields.wifiDevice, data.device || "--");
-    setText(fields.wifiNetworkCount, String(countNetworks(data.networks)));
-    setText(fields.wifiUpdated, formatTime(data.updatedAt));
-  }
-
   function updateLastUpdated() {
     if (!lastUpdated) return;
     lastUpdated.textContent = `Letztes Update: ${new Date().toLocaleTimeString("de-DE")}`;
-  }
-
-  function updateLocationUI(data) {
-    setText(fields.lat, safeValue(data?.lat, 6));
-    setText(fields.lng, safeValue(data?.lng, 6));
-  }
-
-  async function postJson(url, payload) {
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-
-    return response.json().catch(() => ({}));
   }
 
   function setupCameraFeed(feedEl, placeholderEl) {
@@ -253,40 +337,5 @@ document.addEventListener("DOMContentLoaded", () => {
     feedEl.src = config.cameraFeedUrl;
     feedEl.style.display = "block";
     placeholderEl.style.display = "none";
-  }
-
-  function setupManualCoordinateForm() {
-    const coordForm = document.getElementById("manual-coord-form");
-    const manualXInput = document.getElementById("manual-x");
-    const manualZInput = document.getElementById("manual-z");
-    const manualSendStatus = document.getElementById("manual-send-status");
-
-    if (!coordForm || !manualSendStatus) return;
-
-    coordForm.addEventListener("submit", async (event) => {
-      event.preventDefault();
-
-      const x = Number(manualXInput.value);
-      const z = Number(manualZInput.value);
-
-      if (!Number.isFinite(x) || !Number.isFinite(z)) {
-        manualSendStatus.textContent = "Bitte gültige Zahlen für X und Z eingeben.";
-        return;
-      }
-
-      manualSendStatus.textContent = "Sende Koordinaten an ESP32 ...";
-
-      try {
-        await postJson(config.espCommandUrl, {
-          type: "single-coordinate",
-          x,
-          z,
-          createdAt: Date.now(),
-        });
-        manualSendStatus.textContent = `Gesendet: X=${x.toFixed(1)}, Z=${z.toFixed(1)}`;
-      } catch (error) {
-        manualSendStatus.textContent = `Senden fehlgeschlagen: ${error.message}`;
-      }
-    });
   }
 });
