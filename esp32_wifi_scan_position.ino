@@ -1,5 +1,6 @@
 #include <WiFi.h>
 #include <Firebase_ESP_Client.h>
+#include <time.h>
 
 #define WIFI_SSID "mywlan"
 #define WIFI_PASSWORD "cc305ag500"
@@ -25,6 +26,17 @@ String firebaseKey(String value) {
   return value;
 }
 
+unsigned long long epochMillis() {
+  time_t now;
+  time(&now);
+
+  if (now < 1700000000) {
+    return millis();
+  }
+
+  return (unsigned long long)now * 1000ULL;
+}
+
 void connectWifi() {
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
@@ -39,6 +51,8 @@ void connectWifi() {
   Serial.println("WLAN verbunden");
   Serial.print("IP: ");
   Serial.println(WiFi.localIP());
+
+  configTime(0, 0, "pool.ntp.org", "time.nist.gov");
 }
 
 void setupFirebase() {
@@ -65,7 +79,7 @@ void publishWifiScan() {
   FirebaseJson networks;
 
   root.set("device", "esp32");
-  root.set("updatedAt", (int)(millis()));
+  root.set("updatedAt", (double)epochMillis());
 
   for (int i = 0; i < count; i++) {
     FirebaseJson network;
