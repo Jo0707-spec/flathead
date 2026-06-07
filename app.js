@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
-import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js";
+import { getDatabase, ref, onValue, get } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDcjgVtCEZGSOepoX4c5mBsZ0UtbjvTEpU",
@@ -11,6 +11,7 @@ const firebaseConfig = {
 const config = {
   espCommandUrl: "http://192.168.68.136:5000/api/esp32/target",
   cameraFeedUrl: "https://unretaliating-armani-offensively.ngrok-free.dev/video_feed",
+  sensorRefreshMs: 1500,
 };
 
 const app = initializeApp(firebaseConfig);
@@ -54,30 +55,61 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function listenToFirebase() {
-    onValue(ref(db, "sensor"), (snapshot) => {
+    const sensorRef = ref(db, "sensor");
+    const distanceRef = ref(db, "sensors/distance");
+
+    onValue(sensorRef, (snapshot) => {
       const data = snapshot.val();
       if (!data) return;
 
-      updateSensorUI({
-        temperature: {
-          outside: data.temperature,
-          inside: data.temperature,
-        },
-        humidity: {
-          outside: data.humidity,
-          inside: data.humidity,
-        },
-        distanceCm: data.distance || 0,
-        heading: data.heading || null,
-      });
+      updateSensorUI(data);
+
+      if (data.distance !== undefined) {
+        updateDistanceUI(data.distance);
+      }
 
       setStatus("ok", "Sensordaten empfangen");
     });
+
+    onValue(distanceRef, (snapshot) => {
+      if (snapshot.exists()) {
+        updateDistanceUI(snapshot.val());
+      }
+    });
+
+    refreshAllSensors(sensorRef, distanceRef);
+    setInterval(() => refreshAllSensors(sensorRef, distanceRef), config.sensorRefreshMs);
 
     onValue(ref(db, "location"), (snapshot) => {
       const data = snapshot.val();
       if (data) updateLocationUI(data);
     });
+  }
+
+  async function refreshAllSensors(sensorRef, distanceRef) {
+    try {
+      const [sensorSnapshot, distanceSnapshot] = await Promise.all([
+        get(sensorRef),
+        get(distanceRef),
+      ]);
+
+      if (sensorSnapshot.exists()) {
+        const sensorData = sensorSnapshot.val();
+        updateSensorUI(sensorData);
+
+        if (sensorData.distance !== undefined) {
+          updateDistanceUI(sensorData.distance);
+        }
+      }
+
+      if (distanceSnapshot.exists()) {
+        updateDistanceUI(distanceSnapshot.val());
+      }
+
+      setStatus("ok", "Sensordaten aktualisiert");
+    } catch (error) {
+      setStatus("error", `Sensordaten konnten nicht geladen werden: ${error.message}`);
+    }
   }
 
   function setStatus(type, message) {
@@ -93,17 +125,25 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function updateSensorUI(data) {
-    fields.tempOut.textContent = safeValue(data?.temperature?.outside);
-    fields.tempIn.textContent = safeValue(data?.temperature?.inside);
-    fields.humOut.textContent = safeValue(data?.humidity?.outside);
-    fields.humIn.textContent = safeValue(data?.humidity?.inside);
-    fields.distance.textContent = safeValue(data?.distanceCm, 0);
+    fields.tempOut.textContent = safeValue(data?.temperature);
+    fields.tempIn.textContent = safeValue(data?.temperature);
+    fields.humOut.textContent = safeValue(data?.humidity);
+    fields.humIn.textContent = safeValue(data?.humidity);
 
     const heading = data?.heading;
     fields.heading.textContent = heading?.cardinal
       ? `${heading.cardinal} (${safeValue(heading.deg, 0)}°)`
       : "--";
 
+    updateLastUpdated();
+  }
+
+  function updateDistanceUI(distanceCm) {
+    fields.distance.textContent = safeValue(distanceCm, 1);
+    updateLastUpdated();
+  }
+
+  function updateLastUpdated() {
     lastUpdated.textContent = `Letztes Update: ${new Date().toLocaleTimeString("de-DE")}`;
   }
 
