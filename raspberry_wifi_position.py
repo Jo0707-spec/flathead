@@ -10,7 +10,7 @@ import urllib.request
 
 API_KEY = "AIzaSyDcjgVtCEZGSOepoX4c5mBsZ0UtbjvTEpU"
 DATABASE_URL = "https://flathead-d96d6-default-rtdb.europe-west1.firebasedatabase.app"
-SCAN_INTERVAL_SECONDS = 2
+SCAN_INTERVAL_SECONDS = 1.5
 MISSING_NETWORK_PENALTY = 25
 
 
