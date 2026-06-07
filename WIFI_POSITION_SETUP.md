@@ -10,6 +10,8 @@ Die Website liest:
 - `/position/wifi/current` fuer den letzten WLAN-Scan
 - `/position/fingerprints` fuer gespeicherte Referenzpunkte
 
+Die Website aktualisiert automatisch, sobald Firebase neue Werte bekommt. Raspberry Pi und ESP32 senden standardmaessig ca. alle 1,5 Sekunden neue WLAN-Daten.
+
 ## Raspberry Pi verwenden
 
 Der Raspberry Pi kann Referenzpunkte kalibrieren und danach selbst die Position schaetzen.
@@ -59,11 +61,18 @@ Je mehr Referenzpunkte du speicherst, desto besser wird die Schaetzung.
 python3 raspberry_wifi_position.py
 ```
 
-Der Raspberry Pi scannt dann ca. alle 2 Sekunden und schreibt die geschaetzte Position nach Firebase. Die Website zeigt diese Daten automatisch an.
+Der Raspberry Pi scannt dann ca. alle 1,5 Sekunden und schreibt die geschaetzte Position nach Firebase. Die Website zeigt diese Daten automatisch an.
+
+Du kannst das Intervall auch selbst setzen:
+
+```bash
+python3 raspberry_wifi_position.py --interval 1
+python3 raspberry_wifi_position.py --interval 2
+```
 
 ## ESP32 verwenden
 
-Die Datei `esp32_wifi_scan_position.ino` scannt WLAN-Netzwerke mit dem ESP32 und schreibt den aktuellen Scan nach:
+Die Datei `esp32_wifi_scan_position.ino` scannt WLAN-Netzwerke mit dem ESP32 ca. alle 1,5 Sekunden und schreibt den aktuellen Scan nach:
 
 ```text
 /position/wifi/current
